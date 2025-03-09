@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:latest  # Obraz PostgreSQL
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: admin  # Nazwa użytkownika
+      POSTGRES_PASSWORD: securepassword  # Hasło użytkownika
+      POSTGRES_DB: hotel_db  # Nazwa bazy danych
+    ports:
+      - "5432:5432"  # Mapowanie portu 5432 na hoście na port 5432 w kontenerze
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Wolumin dla trwałości danych
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql  # Skrypt inicjalizacyjny
+    networks:
+      - hotel_network
+
+volumes:
+  postgres_data:  # Wolumin dla danych PostgreSQL
+
+networks:
+  hotel_network:  # Sieć dla kontenerów
