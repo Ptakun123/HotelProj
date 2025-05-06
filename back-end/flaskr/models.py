@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
@@ -27,6 +28,12 @@ class User(db.Model):
     last_name = db.Column(db.String(50), nullable=False)
     phone_number = db.Column(db.String(19), nullable=False)
     role = db.Column(db.String(10), nullable=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)  # Generuj hash
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)  # Weryfikuj hash
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
