@@ -64,7 +64,7 @@ def register():
         return jsonify({
             "message": "Rejestracja zakończona pomyślnie",
             "user": {
-                "id": new_user.id,
+                "id_user": new_user.id_user,
                 "email": new_user.email,
                 "first_name": new_user.first_name,
                 "last_name": new_user.last_name

@@ -40,9 +40,6 @@ def create_app(test_config=None):
     from authorization import auth_bp
     app.register_blueprint(auth_bp)
 
-    # Create tables
-    with app.app_context():
-        db.create_all()
 
     # Routes
     @app.route('/')
@@ -56,9 +53,9 @@ def create_app(test_config=None):
     @app.route('/test_db')
     def test_db():
         try:
-            users = db.session.execute(text('SELECT * FROM user')).fetchall()
+            users = db.session.execute(text('SELECT * FROM users')).fetchall()
             if users:
-                return f"Połączenie działa! Pierwszy użytkownik: {users[0]}"
+                return f"Połączenie działa! Pierwszy użytkownik: {users}"
             return "Połączenie działa, ale nie ma danych w tabeli 'users'."
         except Exception as e:
             return f"Nie udało się połączyć z bazą danych: {e}"
