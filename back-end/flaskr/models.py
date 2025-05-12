@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
+import hashlib
 
-db = SQLAlchemy()
+from extensions import db
 
 class Hotel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -30,10 +30,14 @@ class User(db.Model):
     role = db.Column(db.String(10), nullable=False)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)  # Generuj hash
+        # Generowanie hasha SHA-256 (64 znaki hex)
+        sha256_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+        self.password_hash = sha256_hash
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)  # Weryfikuj hash
+        # Weryfikacja hasha SHA-256
+        sha256_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+        return self.password_hash == sha256_hash
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
