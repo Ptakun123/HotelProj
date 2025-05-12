@@ -13,9 +13,7 @@ def create_app(test_config=None):
     app.config.from_mapping(
         SECRET_KEY="dev",
         SQLALCHEMY_DATABASE_URI='postgresql://admin:securepassword@localhost:5432/hotel_db',
-        SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        DATABASE=os.path.join(app.instance_path, "flaskr.sqlite"),
-        
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,    
     )
     app.config['JWT_SECRET_KEY'] = 'tajny-klucz-123'  # Klucz do JWT (w produkcji użyj zmiennej środowiskowej!)
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)  # Ważność tokenu
@@ -58,7 +56,7 @@ def create_app(test_config=None):
     @app.route('/test_db')
     def test_db():
         try:
-            users = db.session.execute(text('SELECT * FROM users LIMIT 1')).fetchall()
+            users = db.session.execute(text('SELECT * FROM user')).fetchall()
             if users:
                 return f"Połączenie działa! Pierwszy użytkownik: {users[0]}"
             return "Połączenie działa, ale nie ma danych w tabeli 'users'."
