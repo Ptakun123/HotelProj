@@ -40,6 +40,9 @@ def create_app(test_config=None):
     from authorization import auth_bp
     app.register_blueprint(auth_bp)
 
+    from end_points import endp_bp
+    app.register_blueprint(endp_bp)
+
 
     # Routes
     @app.route('/')

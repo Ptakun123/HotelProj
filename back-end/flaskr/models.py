@@ -55,9 +55,9 @@ class Reservation(db.Model):
     full_name = db.Column(db.String(50), nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)
     bill_type = db.Column(db.String(1), nullable=False)
-    NIP = db.Column(db.String(20))
-    id_room = db.Column(db.Integer, db.ForeignKey('Rooms.id_room'), nullable=False)
-    id_user = db.Column(db.Integer, db.ForeignKey('Users.id_user'), nullable=False)
+    nip = db.Column(db.String(20), nullable=True)
+    id_room = db.Column(db.Integer, db.ForeignKey('rooms.id_room'), nullable=False)
+    id_user = db.Column(db.Integer, db.ForeignKey('users.id_user'), nullable=False)
 
 class HotelFacility(db.Model):
     __tablename__ = 'hotel_facilities'  # Określenie nazwy tabeli
@@ -71,10 +71,10 @@ class RoomFacility(db.Model):
 
 class HotelHotelFacility(db.Model):
     __tablename__ = 'hotels_hotel_facilities'  # Określenie nazwy tabeli
-    id_hotel = db.Column(db.Integer, db.ForeignKey('Hotels.id_hotel'), primary_key=True)
-    id_hotel_facility = db.Column(db.Integer, db.ForeignKey('Hotel_facilities.id_hotel_facility'), primary_key=True)
+    id_hotel = db.Column(db.Integer, db.ForeignKey('hotels.id_hotel'), primary_key=True)
+    id_hotel_facility = db.Column(db.Integer, db.ForeignKey('hotel_facilities.id_hotel_facility'), primary_key=True)
 
 class RoomRoomFacility(db.Model):
     __tablename__ = 'rooms_room_facilities'  # Określenie nazwy tabeli
-    id_room = db.Column(db.Integer, db.ForeignKey('Rooms.id_room'), primary_key=True)
-    id_room_facility = db.Column(db.Integer, db.ForeignKey('Room_facilities.id_room_facility'), primary_key=True)
+    id_room = db.Column(db.Integer, db.ForeignKey('rooms.id_room'), primary_key=True)
+    id_room_facility = db.Column(db.Integer, db.ForeignKey('room_facilities.id_room_facility'), primary_key=True)
