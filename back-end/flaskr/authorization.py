@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, create_refresh_token
 from models import User
-from datetime import timedelta, datetime
+from werkzeug.security import generate_password_hash
 from validators import validate_birth_date, validate_email, validate_password
 from extensions import db
 import hashlib
@@ -50,7 +50,7 @@ def register():
     try:
         new_user = User(
             email=data['email'],
-            password_hash=hashlib.sha256(data['password'].encode('utf-8')).hexdigest(),
+            password_hash=generate_password_hash(data['password']),
             birth_date=birth_date,
             first_name=data['first_name'].strip(),
             last_name=data['last_name'].strip(),
@@ -92,15 +92,15 @@ def login():
             return jsonify({"error": "Nieprawidłowy email lub hasło"}), 401
         
         # Generuj tokeny JWT
-        access_token = create_access_token(identity=user.id)
-        refresh_token = create_refresh_token(identity=user.id)
+        access_token = create_access_token(identity=user.id_user)
+        refresh_token = create_refresh_token(identity=user.id_user)
         
         return jsonify({
             "access_token": access_token,
             "refresh_token": refresh_token,
             "token_type": "Bearer",
             "user": {
-                "id": user.id,
+                "id": user.id_user,
                 "email": user.email,
                 "first_name": user.first_name,
                 "last_name": user.last_name
