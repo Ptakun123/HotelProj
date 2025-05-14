@@ -10,7 +10,7 @@ import NotFoundPage from './pages/NotFoundPage';
 function App() {
   return (
     <div className="App">
-      {/* możesz tu wstawić wspólny <Header/> z nawigacją */}
+      <h1>SYSTEM REZERWACJI</h1>
       <Routes>
         <Route path="/" element={<Navigate to="/search" replace />} />
         <Route path="/login" element={<LoginPage />} />
