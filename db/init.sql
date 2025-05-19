@@ -48,6 +48,7 @@ CREATE TABLE Reservations (
     price NUMERIC(10,2) NOT NULL,
     bill_type CHAR(1) CHECK (bill_type IN ('I', 'R')) NOT NULL,
     nip VARCHAR(20),
+    reservation_status CHAR(1) CHECK (reservation_status IN ('U','P','C')) NOT NULL,
     id_room INTEGER NOT NULL REFERENCES Rooms(id_room) ON DELETE CASCADE,
     id_user INTEGER NOT NULL REFERENCES Users(id_user) ON DELETE CASCADE
 );
