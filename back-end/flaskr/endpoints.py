@@ -185,7 +185,7 @@ def post_reservation():
             price=data["price"],
             bill_type=data["bill_type"],
             nip=data.get("nip"),  # Pole opcjonalne
-            reservation_status="U",
+            reservation_status="A",
         )
 
         db.session.add(new_reservation)
@@ -249,49 +249,6 @@ def post_cancellation():
         )
 
 
-@endp_bp.route("/post_payment", methods=["POST"])
-def post_payment():
-    try:
-        data = request.get_json()
-
-        required_fields = [
-            "id_reservation",
-        ]
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            return (
-                jsonify(
-                    {"error": "Brak wymaganych pól", "missing_fields": missing_fields}
-                ),
-                400,
-            )
-
-        reservation = Reservation.query.filter_by(
-            id_reservation=data["id_reservation"]
-        ).first()
-        if not reservation:
-            return (
-                jsonify({"error": "Wskazana rezerwacja nie istnieje"}),
-                404,
-            )
-        reservation.reservation_status = "P"
-        db.session.commit()
-
-        return jsonify({"message": "Rezerwacja została pomyślnie opłacona"}), 201
-
-    except Exception as e:
-        db.session.rollback()
-        return (
-            jsonify(
-                {
-                    "error": "Wystąpił błąd podczas opłacania rezerwacji",
-                    "details": str(e),
-                }
-            ),
-            500,
-        )
-
-
 @endp_bp.route("/user/<int:id_user>", methods=["GET"])
 def get_user(id_user):
     if not isinstance(id_user, int):
@@ -334,23 +291,20 @@ def get_user_reservations(id_user):
 
     status_arg = request.args.get("status")
 
-    if status_arg not in {"unpaid", "paid", "cancelled"}:
+    if status_arg not in {"active", "cancelled"}:
         return (
             jsonify(
                 {
-                    "error": "Nieprawidłowy format statusu rezerwacji. Użyj 'unpaid' dla nieopłaconych, 'paid' dla opłaconych, lub 'cancelled' dla anulowanych"
+                    "error": "Nieprawidłowy format statusu rezerwacji. Użyj 'active' dla aktywnych lub 'cancelled' dla anulowanych"
                 }
             ),
             400,
         )
 
     match status_arg:
-        case "unpaid":
-            status_string = "nieopłaconych"
-            status = "U"
-        case "paid":
-            status_string = "opłaconych"
-            status = "P"
+        case "active":
+            status_string = "aktywnych"
+            status = "A"
         case "cancelled":
             status_string = "anulowanych"
             status = "C"
@@ -404,7 +358,7 @@ def get_user_reservations(id_user):
                 "price": float(res.price),
                 "bill_type": res.bill_type,
                 "nip": res.nip,
-                "status": res.status,
+                "status": res.reservation_status,
                 "room": {
                     "id_room": room.id_room,
                     "capacity": room.capacity,
