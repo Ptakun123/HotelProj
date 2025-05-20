@@ -409,7 +409,7 @@ def get_hotel(id_hotel):
         .filter(HotelHotelFacility.id_hotel == hotel.id_hotel)
         .all()
     )
-    facilities = [f.facility_name for f in hotel_facilities]
+    facilities = [f.facility_name for f in facilities]
 
     hotel_data = {
         "id_hotel": hotel.id_hotel,
