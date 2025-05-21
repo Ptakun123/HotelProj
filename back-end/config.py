@@ -9,4 +9,3 @@ SMTP_PORT = 465
 SMTP_USERNAME = "apikey"
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 FROM_EMAIL = "uaim_proj_hotel@outlook.com"
-TIMEZONE = "Europe/Warsaw"

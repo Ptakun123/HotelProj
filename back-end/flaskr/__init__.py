@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify
+from flask import Flask
 from datetime import timedelta
 from sqlalchemy import text
 from extensions import db

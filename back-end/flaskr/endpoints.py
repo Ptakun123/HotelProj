@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from mailer import send_email, get_confirmation_email, get_cancellation_email
 from models import *
-from datetime import timedelta, datetime
+from datetime import datetime
 from extensions import db
 from sqlalchemy.sql import text
 from flask_jwt_extended import jwt_required, get_jwt_identity
