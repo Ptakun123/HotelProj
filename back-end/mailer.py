@@ -1,4 +1,3 @@
-import datetime
 import ssl
 from config import (
     SMTP_SERVER,
@@ -6,10 +5,8 @@ from config import (
     SMTP_USERNAME,
     SMTP_PASSWORD,
     FROM_EMAIL,
-    TIMEZONE,
 )
 from smtplib import SMTP_SSL
-from zoneinfo import ZoneInfo
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
