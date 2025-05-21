@@ -22,7 +22,7 @@ class Hotel(db.Model):
     geo_latitude = db.Column(db.Float, nullable=False)
     stars = db.Column(db.SmallInteger, nullable=False)
     id_address = db.Column(
-        db.Integer, db.ForeignKey("Address.id_address"), nullable=False
+        db.Integer, db.ForeignKey("addresses.id_address"), nullable=False
     )
 
 
@@ -49,7 +49,7 @@ class Room(db.Model):
     id_room = db.Column(db.Integer, primary_key=True)
     capacity = db.Column(db.SmallInteger, nullable=False)
     price_per_night = db.Column(db.Numeric(6, 2), nullable=False)
-    id_hotel = db.Column(db.Integer, db.ForeignKey("Hotels.id_hotel"), nullable=False)
+    id_hotel = db.Column(db.Integer, db.ForeignKey("hotels.id_hotel"), nullable=False)
 
 
 class Reservation(db.Model):
