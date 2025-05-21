@@ -4,3 +4,4 @@ flask-sqlalchemy
 flask-jwt-extended
 tzdata
 dotenv
+coverage
