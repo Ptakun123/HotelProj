@@ -2,8 +2,8 @@ import os
 from flask import Flask
 from datetime import timedelta
 from sqlalchemy import text
-from extensions import db
-from flask_jwt_extended import JWTManager  # Dodaj ten import
+from flaskr.extensions import db
+from flask_jwt_extended import JWTManager
 
 
 def create_app(test_config=None):
@@ -39,7 +39,7 @@ def create_app(test_config=None):
     db.init_app(app)
 
     # Register blueprints
-    from authorization import auth_bp
+    from flaskr.authorization import auth_bp
 
     app.register_blueprint(auth_bp)
 

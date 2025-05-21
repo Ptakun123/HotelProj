@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from extensions import db
+from flaskr.extensions import db
 
 
 class Address(db.Model):
@@ -22,7 +22,7 @@ class Hotel(db.Model):
     geo_latitude = db.Column(db.Float, nullable=False)
     stars = db.Column(db.SmallInteger, nullable=False)
     id_address = db.Column(
-        db.Integer, db.ForeignKey("Addresses.id_address"), nullable=False
+        db.Integer, db.ForeignKey("Address.id_address"), nullable=False
     )
 
 

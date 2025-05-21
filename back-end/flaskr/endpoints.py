@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from mailer import send_email, get_confirmation_email, get_cancellation_email
-from models import *
+from flaskr.models import *
 from datetime import datetime
-from extensions import db
+from flaskr.extensions import db
 from sqlalchemy.sql import text
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
@@ -263,7 +263,7 @@ def search_free_rooms():
 
 
 @endp_bp.route("/post_reservation", methods=["POST"])
-@jwt_required
+@jwt_required()
 def post_reservation():
     try:
         data = request.get_json()
@@ -378,7 +378,7 @@ def post_reservation():
 
 
 @endp_bp.route("/post_cancellation", methods=["POST"])
-@jwt_required
+@jwt_required()
 def post_cancellation():
     try:
         data = request.get_json()
@@ -439,7 +439,7 @@ def post_cancellation():
 
 
 @endp_bp.route("/user/<int:id_user>", methods=["GET"])
-@jwt_required
+@jwt_required()
 def get_user(id_user):
     if not isinstance(id_user, int):
         return (
@@ -471,7 +471,7 @@ def get_user(id_user):
 
 
 @endp_bp.route("/user/<int:id_user>/reservations", methods=["GET"])
-@jwt_required
+@jwt_required()
 def get_user_reservations(id_user):
 
     if not isinstance(id_user, int):
