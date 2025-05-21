@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from mailer import send_email, get_confirmation_email, get_cancellation_email
 from models import *
 from datetime import timedelta, datetime
 from extensions import db
@@ -286,6 +287,12 @@ def post_reservation():
                 400,
             )
 
+        id_user = data["id_user"]
+
+        current_user_id = get_jwt_identity()
+        if id_user != current_user_id:
+            return jsonify({"error": "Brak uprawnień do dokonania tej rezerwacji"}), 403
+
         try:
             first_night = datetime.strptime(data["first_night"], "%Y-%m-%d").date()
             last_night = datetime.strptime(data["last_night"], "%Y-%m-%d").date()
@@ -344,6 +351,17 @@ def post_reservation():
         db.session.add(new_reservation)
         db.session.commit()
 
+        user = User.query.get(new_reservation.id_user)
+        room = Room.query.get(new_reservation.id_room)
+        hotel = Hotel.query.get(room.id_hotel)
+        address = Address.query.get(hotel.id_address)
+
+        send_email(
+            get_confirmation_email(
+                user=user, reservation=new_reservation, hotel=hotel, address=address
+            )
+        )
+
         return jsonify({"message": "Rezerwacja została pomyślnie utworzona"}), 201
 
     except Exception as e:
@@ -377,6 +395,15 @@ def post_cancellation():
                 400,
             )
 
+        id_user = data["id_user"]
+
+        current_user_id = get_jwt_identity()
+        if id_user != current_user_id:
+            return (
+                jsonify({"error": "Brak uprawnień do anulowania tej rezerwacji"}),
+                403,
+            )
+
         reservation = Reservation.query.filter_by(
             id_reservation=data["id_reservation"]
         ).first()
@@ -387,6 +414,14 @@ def post_cancellation():
             )
         reservation.reservation_status = "C"
         db.session.commit()
+
+        user = User.query.get(reservation.id_user)
+        room = Room.query.get(reservation.id_room)
+        hotel = Hotel.query.get(room.id_hotel)
+
+        send_email(
+            get_cancellation_email(user=user, reservation=reservation, hotel=hotel)
+        )
 
         return jsonify({"message": "Rezerwacja została pomyślnie anulowana"}), 201
 
