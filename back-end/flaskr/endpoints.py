@@ -3,6 +3,7 @@ from models import *
 from datetime import timedelta, datetime
 from extensions import db
 from sqlalchemy.sql import text
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 endp_bp = Blueprint("endp", __name__)
 
@@ -58,10 +59,10 @@ def search_free_rooms():
                 400,
             )
 
-        room_facilities = data.get("room_facilities")
-        hotel_facilities = data.get("hotel_facilities")
-        countries = data.get("countries")
-        cities = data.get("city")
+        room_facilities = data["room_facilities"]
+        hotel_facilities = data["hotel_facilities"]
+        countries = data["countries"]
+        cities = data["city"]
 
         if room_facilities and not (
             isinstance(room_facilities, list)
@@ -134,12 +135,38 @@ def search_free_rooms():
         ]
 
         # City/country logic
-        if cities:
-            where_clauses.append("a.city IN :cities")
+        city_country_clause = None
+
+        if cities and countries:
+            city_clause = "a.city IN :cities"
+            params["cities"] = tuple(cities)
+
+            # Countries with selected cities
+            cities_countries = db.session.execute(
+                text("SELECT DISTINCT country FROM addresses WHERE city IN :cities"),
+                {"cities": tuple(cities)},
+            ).fetchall()
+            countries_with_cities = {row.country for row in cities_countries}
+            # Countries with no selected cities
+            countries_without_cities = [
+                c for c in countries if c not in countries_with_cities
+            ]
+            if countries_without_cities:
+                country_clause = "a.country IN :countries_without_cities"
+                params["countries_without_cities"] = tuple(countries_without_cities)
+                city_country_clause = f"({city_clause} OR {country_clause})"
+            else:
+                city_country_clause = city_clause
+
+        elif cities:
+            city_country_clause = "a.city IN :cities"
             params["cities"] = tuple(cities)
         elif countries:
-            where_clauses.append("a.country IN :countries")
+            city_country_clause = "a.country IN :countries"
             params["countries"] = tuple(countries)
+
+        if city_country_clause:
+            where_clauses.append(city_country_clause)
 
         # Hotel stars
         if min_hotel_stars is not None:
@@ -235,6 +262,7 @@ def search_free_rooms():
 
 
 @endp_bp.route("/post_reservation", methods=["POST"])
+@jwt_required
 def post_reservation():
     try:
         data = request.get_json()
@@ -332,6 +360,7 @@ def post_reservation():
 
 
 @endp_bp.route("/post_cancellation", methods=["POST"])
+@jwt_required
 def post_cancellation():
     try:
         data = request.get_json()
@@ -375,6 +404,7 @@ def post_cancellation():
 
 
 @endp_bp.route("/user/<int:id_user>", methods=["GET"])
+@jwt_required
 def get_user(id_user):
     if not isinstance(id_user, int):
         return (
@@ -390,6 +420,10 @@ def get_user(id_user):
     if not user:
         return jsonify({"error": "Użytkownik nie istnieje"}), 404
 
+    current_user_id = get_jwt_identity()
+    if id_user != current_user_id:
+        return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
+
     user_data = {
         "id_user": user.id_user,
         "email": user.email,
@@ -402,6 +436,7 @@ def get_user(id_user):
 
 
 @endp_bp.route("/user/<int:id_user>/reservations", methods=["GET"])
+@jwt_required
 def get_user_reservations(id_user):
 
     if not isinstance(id_user, int):
@@ -413,6 +448,10 @@ def get_user_reservations(id_user):
             ),
             400,
         )
+
+    current_user_id = get_jwt_identity()
+    if id_user != current_user_id:
+        return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
 
     status_arg = request.args.get("status")
 
@@ -591,3 +630,31 @@ def get_room(id_room):
         "facilities": facilities,
     }
     return jsonify(room_data), 200
+
+
+@endp_bp.route("/countries", methods=["GET"])
+def get_all_countries():
+    countries = db.session.query(Address.country).distinct().all()
+    countries_list = [c.country for c in countries]
+    return jsonify({"countries": countries_list}), 200
+
+
+@endp_bp.route("/cities", methods=["GET"])
+def get_all_cities():
+    cities = db.session.query(Address.city).distinct().all()
+    cities_list = [c.city for c in cities]
+    return jsonify({"cities": cities_list}), 200
+
+
+@endp_bp.route("/room_facilities", methods=["GET"])
+def get_all_room_facilities():
+    facilities = db.session.query(RoomFacility.facility_name).all()
+    facilities_list = [f.facility_name for f in facilities]
+    return jsonify({"room_facilities": facilities_list}), 200
+
+
+@endp_bp.route("/hotel_facilities", methods=["GET"])
+def get_all_hotel_facilities():
+    facilities = db.session.query(HotelFacility.facility_name).all()
+    facilities_list = [f.facility_name for f in facilities]
+    return jsonify({"hotel_facilities": facilities_list}), 200
