@@ -6,4 +6,9 @@ __pycache__/
 instance/
 venv/
 
+<<<<<<< HEAD
 node_modules/
+=======
+.env
+.coverage
+>>>>>>> origin/mbr

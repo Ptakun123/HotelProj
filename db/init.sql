@@ -48,6 +48,7 @@ CREATE TABLE Reservations (
     price NUMERIC(10,2) NOT NULL,
     bill_type CHAR(1) CHECK (bill_type IN ('I', 'R')) NOT NULL,
     nip VARCHAR(20),
+    reservation_status CHAR(1) CHECK (reservation_status IN ('A', 'C')) NOT NULL,
     id_room INTEGER NOT NULL REFERENCES Rooms(id_room) ON DELETE CASCADE,
     id_user INTEGER NOT NULL REFERENCES Users(id_user) ON DELETE CASCADE
 );
@@ -112,9 +113,9 @@ VALUES
 (3, 300.00, 2);
 
 -- Dodanie rezerwacji
-INSERT INTO Reservations (first_night, last_night, full_name, price, bill_type, NIP, id_room, id_user)
+INSERT INTO Reservations (first_night, last_night, full_name, price, bill_type, NIP, reservation_status, id_room, id_user)
 VALUES
-('2025-05-20', '2025-05-25', 'John Doe', 1000.00, 'I', NULL, 1, 2);
+('2025-05-20', '2025-05-25', 'John Doe', 1000.00, 'I', NULL, 'A', 1, 2);
 
 -- Dodanie udogodnień hoteli
 INSERT INTO Hotel_facilities (facility_name)
