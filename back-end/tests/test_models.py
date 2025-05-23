@@ -1,7 +1,7 @@
 import unittest
 from datetime import date
 from flask import Flask
-from flaskr.models import User, Address, Hotel, Room
+from flaskr.models import User
 from flaskr.extensions import db
 
 

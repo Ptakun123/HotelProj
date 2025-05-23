@@ -10,7 +10,6 @@ from flask_jwt_extended import JWTManager
 
 class AuthorizationTestCase(unittest.TestCase):
     def setUp(self):
-        # Tworzymy aplikację testową
         self.app = Flask(__name__)
         self.app.config["TESTING"] = True
         self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
@@ -27,6 +26,7 @@ class AuthorizationTestCase(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
+    # register()
     def test_register_success(self):
         payload = {
             "email": "test@example.com",
@@ -122,6 +122,7 @@ class AuthorizationTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("data urodzenia", response.get_json().get("error", ""))
 
+    # login()
     def test_login_success(self):
         with self.app.app_context():
             user = User(
