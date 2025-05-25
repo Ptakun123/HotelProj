@@ -9,7 +9,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 endp_bp = Blueprint("endp", __name__)
 
 
-# TODO dodać sortowanie !
 @endp_bp.route("/search_free_rooms", methods=["POST"])
 def search_free_rooms():
     try:
@@ -52,12 +51,76 @@ def search_free_rooms():
             return jsonify({"error": "Liczba gości musi być większa od zera"}), 400
 
         # Optional filters
+        lowest_price = data.get("lowest_price", None)
+        highest_price = data.get("highest_price", None)
+        min_hotel_stars = data.get("min_hotel_stars", None)
+        max_hotel_stars = data.get("max_hotel_stars", None)
+
         try:
-            lowest_price = float(data.get("lowest_price", None))
-            highest_price = float(data.get("highest_price", None))
+            lowest_price = float(lowest_price) if lowest_price is not None else None
+            highest_price = float(highest_price) if highest_price is not None else None
         except ValueError:
             return (
                 jsonify({"error": "Ceny muszą być liczbami"}),
+                400,
+            )
+
+        if (
+            lowest_price is not None
+            and highest_price is not None
+            and lowest_price > highest_price
+        ):
+            return (
+                jsonify(
+                    {
+                        "error": "Najwyższa dopuszczalna cena nie może być mniejsza od najniższej dopuszczalnej ceny"
+                    }
+                ),
+                400,
+            )
+
+        try:
+            min_hotel_stars = (
+                int(min_hotel_stars) if min_hotel_stars is not None else None
+            )
+            max_hotel_stars = (
+                int(max_hotel_stars) if max_hotel_stars is not None else None
+            )
+        except ValueError:
+            return (
+                jsonify(
+                    {"error": "Liczby gwiazdek hotelu muszą być liczbami całkowitymi"}
+                ),
+                400,
+            )
+
+        if (
+            min_hotel_stars is not None
+            and max_hotel_stars is not None
+            and (
+                min_hotel_stars not in range(1, 6) or max_hotel_stars not in range(1, 6)
+            )
+        ):
+            return (
+                jsonify(
+                    {
+                        "error": "Liczby gwiazdek hotelu muszą należeć do przedziału od 1 do 5"
+                    }
+                ),
+                400,
+            )
+
+        if (
+            min_hotel_stars is not None
+            and max_hotel_stars is not None
+            and min_hotel_stars > max_hotel_stars
+        ):
+            return (
+                jsonify(
+                    {
+                        "error": "Najwyższa dopuszczalna liczba gwiazdek nie może być mniejsza od najniższej dopuszczalnej liczby gwiazdek"
+                    }
+                ),
                 400,
             )
 
@@ -65,8 +128,6 @@ def search_free_rooms():
         hotel_facilities = data.get("hotel_facilities", [])
         countries = data.get("countries", [])
         cities = data.get("city", [])
-        sort_by = data.get("sort_by", None)
-        sort_order = data.get("sort_order", None)
 
         if room_facilities and not (
             isinstance(room_facilities, list)
@@ -99,48 +160,39 @@ def search_free_rooms():
                 400,
             )
 
+        sort_by = data.get("sort_by", None)
+        sort_order = data.get("sort_order", None)
+
         try:
-            min_hotel_stars = int(data.get("min_hotel_stars", None))
-            max_hotel_stars = int(data.get("max_hotel_stars", None))
+            sort_by = str(sort_by) if sort_by is not None else None
+            sort_order = str(sort_order) if sort_order is not None else None
         except ValueError:
             return (
                 jsonify(
-                    {"error": "Liczby gwiazdek hotelu muszą być liczbami całkowitymi"}
+                    {"error": "Parametr oraz porządek sortowania muszą być stringami"}
                 ),
                 400,
             )
 
-        if min_hotel_stars not in range(1, 6) or max_hotel_stars not in range(1, 6):
+        if sort_by and sort_by not in {"price", "stars"}:
             return (
                 jsonify(
                     {
-                        "error": "Liczby gwiazdek hotelu muszą należeć do przedziału od 1 do 5"
+                        "error": "Nieprawidłowy parametr sortowania. Użyj 'stars' dla liczby gwiazdek oraz 'price' dla ceny"
                     }
                 ),
                 400,
             )
 
-        if sort_by is not None:
-            if not isinstance(sort_by, str) or sort_by not in {"price", "stars"}:
-                return (
-                    jsonify(
-                        {
-                            "error": "Nieprawidłowy parametr sortowania. Użyj 'stars' dla liczby gwiazdek oraz 'price' dla ceny"
-                        }
-                    ),
-                    400,
-                )
-
-        if sort_order is not None:
-            if not isinstance(sort_order, str) or sort_order not in {"asc", "desc"}:
-                return (
-                    jsonify(
-                        {
-                            "error": "Nieprawidłowy parametr porządku sortowania. Użyj 'asc' dla rosnącego oraz 'desc' dla malejącego"
-                        }
-                    ),
-                    400,
-                )
+        if sort_order and sort_order not in {"asc", "desc"}:
+            return (
+                jsonify(
+                    {
+                        "error": "Nieprawidłowy parametr porządku sortowania. Użyj 'asc' dla rosnącego oraz 'desc' dla malejącego"
+                    }
+                ),
+                400,
+            )
 
         # Build base query
         nights = (end_date - start_date).days
@@ -156,21 +208,25 @@ def search_free_rooms():
             "guests": guests,
         }
         where_clauses = [
-            "r.capacity >= :guests",
-            "r.id_room NOT IN (SELECT id_room FROM reservations WHERE (first_night, last_night) OVERLAPS (:start_date, :end_date))",
+            "r.capacity = :guests",
+            "r.id_room NOT IN (SELECT id_room FROM reservations WHERE NOT (last_night < :start_date OR first_night > :end_date))",
         ]
 
         # City/country logic
         city_country_clause = None
 
         if cities and countries:
-            city_clause = "a.city IN :cities"
-            params["cities"] = tuple(cities)
+            city_placeholders = ", ".join([f":city_{i}" for i in range(len(cities))])
+            city_clause = f"a.city IN ({city_placeholders})"
+            for i, city in enumerate(cities):
+                params[f"city_{i}"] = city
 
             # Countries with selected cities
             cities_countries = db.session.execute(
-                text("SELECT DISTINCT country FROM addresses WHERE city IN :cities"),
-                {"cities": tuple(cities)},
+                text(
+                    f"SELECT DISTINCT country FROM addresses WHERE city IN ({city_placeholders})"
+                ),
+                {f"city_{i}": city for i, city in enumerate(cities)},
             ).fetchall()
             countries_with_cities = {row.country for row in cities_countries}
             # Countries with no selected cities
@@ -178,18 +234,26 @@ def search_free_rooms():
                 c for c in countries if c not in countries_with_cities
             ]
             if countries_without_cities:
-                country_clause = "a.country IN :countries_without_cities"
-                params["countries_without_cities"] = tuple(countries_without_cities)
+                country_placeholders = ", ".join(
+                    [f":country_{i}" for i in range(len(countries_without_cities))]
+                )
+                country_clause = f"a.country IN ({country_placeholders})"
+                for i, country in enumerate(countries_without_cities):
+                    params[f"country_{i}"] = country
                 city_country_clause = f"({city_clause} OR {country_clause})"
             else:
                 city_country_clause = city_clause
 
         elif cities:
-            city_country_clause = "a.city IN :cities"
-            params["cities"] = tuple(cities)
+            placeholders = ", ".join([f":city_{i}" for i in range(len(cities))])
+            city_country_clause = f"a.city IN ({placeholders})"
+            for i, city in enumerate(cities):
+                params[f"city_{i}"] = city
         elif countries:
-            city_country_clause = "a.country IN :countries"
-            params["countries"] = tuple(countries)
+            placeholders = ", ".join([f":country_{i}" for i in range(len(countries))])
+            city_country_clause = f"a.country IN ({placeholders})"
+            for i, country in enumerate(countries):
+                params[f"country_{i}"] = country
 
         if city_country_clause:
             where_clauses.append(city_country_clause)
@@ -218,8 +282,13 @@ def search_free_rooms():
                 JOIN rooms_room_facilities rrf ON rrf.id_room = r.id_room
                 JOIN room_facilities rf ON rrf.id_room_facility = rf.id_room_facility
             """
-            where_clauses.append("rf.facility_name IN :room_facilities")
+            rf_placeholders = ", ".join(
+                [f":rf_{i}" for i in range(len(room_facilities))]
+            )
+            where_clauses.append(f"rf.facility_name IN ({rf_placeholders})")
             params["room_facilities"] = tuple(room_facilities)
+            for i, facility in enumerate(room_facilities):
+                params[f"rf_{i}"] = facility
             # Ensure all required facilities are present
             group_by = " GROUP BY r.id_room, r.capacity, r.price_per_night, h.name, a.city, a.country, h.stars"
             having = (
@@ -235,8 +304,12 @@ def search_free_rooms():
                 JOIN hotels_hotel_facilities hhf ON hhf.id_hotel = h.id_hotel
                 JOIN hotel_facilities hf ON hhf.id_hotel_facility = hf.id_hotel_facility
             """
-            where_clauses.append("hf.facility_name IN :hotel_facilities")
-            params["hotel_facilities"] = tuple(hotel_facilities)
+            hf_placeholders = ", ".join(
+                [f":hf_{i}" for i in range(len(hotel_facilities))]
+            )
+            where_clauses.append(f"hf.facility_name IN ({hf_placeholders})")
+            for i, facility in enumerate(hotel_facilities):
+                params[f"hf_{i}"] = facility
             # Ensure all required hotel facilities are present
             if group_by == "":
                 group_by = " GROUP BY r.id_room, r.capacity, r.price_per_night, h.name, a.city, a.country, h.stars"
@@ -265,6 +338,7 @@ def search_free_rooms():
                 "id_room": row.id_room,
                 "capacity": row.capacity,
                 "price_per_night": float(row.price_per_night),
+                "total_price": float(row.price_per_night) * nights,
                 "hotel_name": row.hotel_name,
                 "city": row.city,
                 "country": row.country,
@@ -305,7 +379,6 @@ def post_reservation():
             "first_night",
             "last_night",
             "full_name",
-            "price",
             "bill_type",
         ]
 
@@ -318,11 +391,36 @@ def post_reservation():
                 400,
             )
 
-        id_user = data["id_user"]
+        try:
+            id_room = int(data["id_room"])
+            id_user = int(data["id_user"])
+        except (ValueError, TypeError):
+            return (
+                jsonify(
+                    {
+                        "error": "Identyfikator pokoju i użytkownika muszą być liczbami całkowitymi"
+                    }
+                ),
+                400,
+            )
 
-        current_user_id = get_jwt_identity()
-        if id_user != current_user_id:
-            return jsonify({"error": "Brak uprawnień do dokonania tej rezerwacji"}), 403
+        full_name = data["full_name"]
+        if not isinstance(full_name, str) or not full_name.strip():
+            return (
+                jsonify({"error": "Imię i nazwisko musi być niepustym stringiem"}),
+                400,
+            )
+
+        bill_type = data["bill_type"]
+        if not isinstance(bill_type, str) or bill_type not in {"I", "R"}:
+            return (
+                jsonify(
+                    {
+                        "error": "Typ rachunku musi być stringiem i mieć wartość 'I' lub 'R'"
+                    }
+                ),
+                400,
+            )
 
         try:
             first_night = datetime.strptime(data["first_night"], "%Y-%m-%d").date()
@@ -343,6 +441,17 @@ def post_reservation():
                 400,
             )
 
+        room = Room.query.get(id_room)
+        if not room:
+            return jsonify({"error": "Pokój nie istnieje"}), 404
+
+        current_user_id = get_jwt_identity()
+        if str(id_user) != str(current_user_id):
+            return jsonify({"error": "Brak uprawnień do dokonania tej rezerwacji"}), 403
+
+        nights = (last_night - first_night).days
+        total_price = float(room.price_per_night) * nights
+
         # Sprawdzenie, czy pokój jest dostępny w podanym terminie
         query = db.session.execute(
             text(
@@ -350,11 +459,11 @@ def post_reservation():
                 SELECT 1
                 FROM reservations
                 WHERE id_room = :id_room
-                  AND (first_night, last_night) OVERLAPS (:first_night, :last_night)
+                    AND NOT (last_night < :first_night OR first_night > :last_night)
                 """
             ),
             {
-                "id_room": data["id_room"],
+                "id_room": id_room,
                 "first_night": first_night,
                 "last_night": last_night,
             },
@@ -368,13 +477,13 @@ def post_reservation():
 
         # Utworzenie nowej rezerwacji
         new_reservation = Reservation(
-            id_room=data["id_room"],
-            id_user=data["id_user"],
+            id_room=id_room,
+            id_user=id_user,
             first_night=first_night,
             last_night=last_night,
-            full_name=data["full_name"],
-            price=data["price"],
-            bill_type=data["bill_type"],
+            full_name=full_name,
+            price=total_price,
+            bill_type=bill_type,
             nip=data.get("nip"),  # Pole opcjonalne
             reservation_status="A",
         )
@@ -383,15 +492,14 @@ def post_reservation():
         db.session.commit()
 
         user = User.query.get(new_reservation.id_user)
-        room = Room.query.get(new_reservation.id_room)
         hotel = Hotel.query.get(room.id_hotel)
         address = Address.query.get(hotel.id_address)
 
-        send_email(
-            get_confirmation_email(
-                user=user, reservation=new_reservation, hotel=hotel, address=address
-            )
-        )
+        # send_email(
+        #     get_confirmation_email(
+        #         user=user, reservation=new_reservation, hotel=hotel, address=address
+        #     )
+        # )
 
         return jsonify({"message": "Rezerwacja została pomyślnie utworzona"}), 201
 
@@ -429,7 +537,7 @@ def post_cancellation():
         id_user = data["id_user"]
 
         current_user_id = get_jwt_identity()
-        if id_user != current_user_id:
+        if str(id_user) != str(current_user_id):
             return (
                 jsonify({"error": "Brak uprawnień do anulowania tej rezerwacji"}),
                 403,
@@ -450,9 +558,9 @@ def post_cancellation():
         room = Room.query.get(reservation.id_room)
         hotel = Hotel.query.get(room.id_hotel)
 
-        send_email(
-            get_cancellation_email(user=user, reservation=reservation, hotel=hotel)
-        )
+        # send_email(
+        #     get_cancellation_email(user=user, reservation=reservation, hotel=hotel)
+        # )
 
         return jsonify({"message": "Rezerwacja została pomyślnie anulowana"}), 201
 
@@ -487,7 +595,7 @@ def get_user(id_user):
         return jsonify({"error": "Użytkownik nie istnieje"}), 404
 
     current_user_id = get_jwt_identity()
-    if id_user != current_user_id:
+    if str(id_user) != str(current_user_id):
         return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
 
     user_data = {
@@ -515,8 +623,12 @@ def get_user_reservations(id_user):
             400,
         )
 
+    user = User.query.get(id_user)
+    if not user:
+        return jsonify({"error": "Użytkownik nie istnieje"}), 404
+
     current_user_id = get_jwt_identity()
-    if id_user != current_user_id:
+    if str(id_user) != str(current_user_id):
         return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
 
     status_arg = request.args.get("status")
@@ -539,7 +651,7 @@ def get_user_reservations(id_user):
             status_string = "anulowanych"
             status = "C"
 
-    query = Reservation.query.filter_by(id_user=id_user, status=status)
+    query = Reservation.query.filter_by(id_user=id_user, reservation_status=status)
     reservations = query.all()
 
     if not reservations:
@@ -626,10 +738,8 @@ def get_hotel(id_hotel):
     if not hotel:
         return jsonify({"error": "Hotel nie istnieje"}), 404
 
-    # Dane adresowe
     address = Address.query.get(hotel.id_address)
 
-    # Udogodnienia hotelu
     facilities = (
         db.session.query(HotelFacility.facility_name)
         .join(
@@ -676,7 +786,6 @@ def get_room(id_room):
     if not room:
         return jsonify({"error": "Pokój nie istnieje"}), 404
 
-    # Udogodnienia pokoju
     facilities = (
         db.session.query(RoomFacility.facility_name)
         .join(
