@@ -1,10 +1,10 @@
 .venv/
+.env
+.coverage
+.vscode
 
 *.pyc
 __pycache__/
 
 instance/
 venv/
-
-.env
-.coverage
