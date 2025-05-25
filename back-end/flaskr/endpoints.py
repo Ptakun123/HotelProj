@@ -9,6 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 endp_bp = Blueprint("endp", __name__)
 
 
+# TODO dodać sortowanie !
 @endp_bp.route("/search_free_rooms", methods=["POST"])
 def search_free_rooms():
     try:
@@ -52,18 +53,20 @@ def search_free_rooms():
 
         # Optional filters
         try:
-            lowest_price = float(data["lowest_price"])
-            highest_price = float(data["highest_price"])
+            lowest_price = float(data.get("lowest_price", None))
+            highest_price = float(data.get("highest_price", None))
         except ValueError:
             return (
                 jsonify({"error": "Ceny muszą być liczbami"}),
                 400,
             )
 
-        room_facilities = data["room_facilities"]
-        hotel_facilities = data["hotel_facilities"]
-        countries = data["countries"]
-        cities = data["city"]
+        room_facilities = data.get("room_facilities", [])
+        hotel_facilities = data.get("hotel_facilities", [])
+        countries = data.get("countries", [])
+        cities = data.get("city", [])
+        sort_by = data.get("sort_by", None)
+        sort_order = data.get("sort_order", None)
 
         if room_facilities and not (
             isinstance(room_facilities, list)
@@ -97,8 +100,8 @@ def search_free_rooms():
             )
 
         try:
-            min_hotel_stars = int(data["min_hotel_stars"])
-            max_hotel_stars = int(data["max_hotel_stars"])
+            min_hotel_stars = int(data.get("min_hotel_stars", None))
+            max_hotel_stars = int(data.get("max_hotel_stars", None))
         except ValueError:
             return (
                 jsonify(
@@ -116,6 +119,28 @@ def search_free_rooms():
                 ),
                 400,
             )
+
+        if sort_by is not None:
+            if not isinstance(sort_by, str) or sort_by not in {"price", "stars"}:
+                return (
+                    jsonify(
+                        {
+                            "error": "Nieprawidłowy parametr sortowania. Użyj 'stars' dla liczby gwiazdek oraz 'price' dla ceny"
+                        }
+                    ),
+                    400,
+                )
+
+        if sort_order is not None:
+            if not isinstance(sort_order, str) or sort_order not in {"asc", "desc"}:
+                return (
+                    jsonify(
+                        {
+                            "error": "Nieprawidłowy parametr porządku sortowania. Użyj 'asc' dla rosnącego oraz 'desc' dla malejącego"
+                        }
+                    ),
+                    400,
+                )
 
         # Build base query
         nights = (end_date - start_date).days
@@ -226,6 +251,12 @@ def search_free_rooms():
             query_str += " WHERE " + " AND ".join(where_clauses)
         query_str += group_by
         query_str += having
+
+        # Sort results
+        sort_columns = {"price": "r.price_per_night", "stars": "h.stars"}
+        if sort_by:
+            order = sort_order if sort_order else "asc"
+            query_str += f" ORDER BY {sort_columns[sort_by]} {order.upper()}"
 
         query = db.session.execute(text(query_str), params)
 
