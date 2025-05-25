@@ -475,7 +475,7 @@ def post_reservation():
                 400,
             )
 
-        # Utworzenie nowej rezerwacji
+        # Create new reservation
         new_reservation = Reservation(
             id_room=id_room,
             id_user=id_user,
