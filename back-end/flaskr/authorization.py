@@ -18,7 +18,6 @@ def register():
         "first_name",
         "last_name",
         "phone_number",
-        "role",
     ]
 
     data = request.get_json()
@@ -56,7 +55,7 @@ def register():
             first_name=data["first_name"].strip(),
             last_name=data["last_name"].strip(),
             phone_number=data["phone_number"],
-            role=data["role"],
+            role='U',
         )
 
         db.session.add(new_user)
