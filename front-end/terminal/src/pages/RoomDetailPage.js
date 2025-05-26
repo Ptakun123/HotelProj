@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
 export default function RoomDetailPage() {
-  const { roomId } = useParams();
-  return <h1>Rezerwacja pokoju {roomId}</h1>;
+  const { id_room } = useParams();
+  return <h1>Rezerwacja pokoju {id_room}</h1>;
 }
