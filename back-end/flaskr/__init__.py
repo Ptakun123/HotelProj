@@ -2,6 +2,7 @@ import os
 from flask import Flask
 from datetime import timedelta
 from sqlalchemy import text
+from flask_cors import CORS
 from flaskr.extensions import db
 from flask_jwt_extended import JWTManager
 
@@ -9,11 +10,11 @@ from flask_jwt_extended import JWTManager
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
-
+    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
     # Konfiguracja domyślna
     app.config.from_mapping(
         SECRET_KEY="dev",
-        SQLALCHEMY_DATABASE_URI="postgresql://admin:securepassword@localhost:5432/hotel_db",
+        SQLALCHEMY_DATABASE_URI="postgresql://admin:securepassword@db:5432/hotel_db",
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
     )
     app.config["JWT_SECRET_KEY"] = (

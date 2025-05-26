@@ -1,7 +1,8 @@
 flask
-psycopg2
+psycopg2-binary
 flask-sqlalchemy
 flask-jwt-extended
 tzdata
 dotenv
 coverage
+Flask-Cors
