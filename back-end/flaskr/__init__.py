@@ -13,7 +13,7 @@ def create_app(test_config=None):
     # Konfiguracja domyślna
     app.config.from_mapping(
         SECRET_KEY="dev",
-        SQLALCHEMY_DATABASE_URI="postgresql://admin:securepassword@localhost:5432/hotel_db",
+        SQLALCHEMY_DATABASE_URI="postgresql://admin:securepassword@db:5432/hotel_db",
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
     )
     app.config["JWT_SECRET_KEY"] = (
