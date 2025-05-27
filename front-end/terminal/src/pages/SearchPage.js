@@ -22,7 +22,7 @@ export default function SearchPage() {
   const [countries, setCountries] = useState('');
   const [cities, setCities] = useState('');
   const [minStars, setMinStars] = useState(0);
-  const [maxStars, setMaxStars] = useState(5);
+  const [maxStars] = useState(5);
   const [rooms, setRooms] = useState([]);
   const [error, setError] = useState(null);
   const [openAdvanced, setOpenAdvanced] = useState(false);
