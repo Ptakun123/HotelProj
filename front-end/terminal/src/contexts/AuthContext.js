@@ -11,8 +11,10 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post('/login', { email, password });
+    if (!data.user || !data.user.id_user) throw new Error('Brak id_user w odpowiedzi backendu');
     setUser(data.user);
     localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('token', data.access_token);
     return data;
   };
 
