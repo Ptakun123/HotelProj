@@ -2,7 +2,7 @@ import unittest
 from flaskr.validators import validate_email, validate_password, validate_birth_date
 
 
-class TestValidators(unittest.TestCase):
+class ValidatorsTestCase(unittest.TestCase):
 
     # validate_email()
     def test_validate_email_correct(self):

@@ -1,4 +1,7 @@
 .venv/
+.env
+.coverage
+.vscode
 
 *.pyc
 __pycache__/
@@ -6,9 +9,5 @@ __pycache__/
 instance/
 venv/
 
-<<<<<<< HEAD
-node_modules/
-=======
 .env
 .coverage
->>>>>>> origin/mbr
