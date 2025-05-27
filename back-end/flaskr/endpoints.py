@@ -289,7 +289,7 @@ def post_reservation():
 
         id_user = data["id_user"]
 
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
             return jsonify({"error": "Brak uprawnień do dokonania tej rezerwacji"}), 403
 
@@ -397,7 +397,7 @@ def post_cancellation():
 
         id_user = data["id_user"]
 
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
             return (
                 jsonify({"error": "Brak uprawnień do anulowania tej rezerwacji"}),
@@ -455,7 +455,7 @@ def get_user(id_user):
     if not user:
         return jsonify({"error": "Użytkownik nie istnieje"}), 404
 
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     if id_user != current_user_id:
         return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
 
@@ -484,7 +484,7 @@ def get_user_reservations(id_user):
             400,
         )
 
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     if id_user != current_user_id:
         return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
 
