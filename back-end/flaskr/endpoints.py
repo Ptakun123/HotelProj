@@ -833,3 +833,13 @@ def get_all_hotel_facilities():
     facilities = db.session.query(HotelFacility.facility_name).all()
     facilities_list = [f.facility_name for f in facilities]
     return jsonify({"hotel_facilities": facilities_list}), 200
+
+
+@endp_bp.route("/hotel_images/<int:hotel_id>", methods=["GET"])
+def get_hotel_images(hotel_id):
+    images = HotelImage.query.filter_by(id_hotel=hotel_id).all()
+    return jsonify([{
+        'url': img.image_url,
+        'description': img.description,
+        'is_main': img.is_main
+    } for img in images])

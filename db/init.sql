@@ -19,6 +19,15 @@ CREATE TABLE Hotels (
     id_address INTEGER NOT NULL REFERENCES Addresses(id_address) ON DELETE CASCADE
 );
 
+-- Tabeli zdjęć hoteli
+CREATE TABLE Hotel_images (
+    id_image SERIAL PRIMARY KEY,
+    id_hotel INTEGER NOT NULL REFERENCES Hotels(id_hotel) ON DELETE CASCADE,
+    image_url VARCHAR(255) NOT NULL,
+    description VARCHAR(100),
+    is_main BOOLEAN DEFAULT FALSE
+);
+
 -- Tabela użytkowników
 CREATE TABLE Users (
     id_user SERIAL PRIMARY KEY,
@@ -83,6 +92,7 @@ CREATE TABLE Rooms_Room_facilities (
 CREATE INDEX IX_Hotel_has_a_room ON Rooms(id_hotel);
 CREATE INDEX IX_Room_has_a_reservation ON Reservations(id_room);
 CREATE INDEX IX_User_has_a_reservation ON Reservations(id_user);
+CREATE INDEX IX_Hotel_images ON Hotel_images(id_hotel);
 
 
 
@@ -97,6 +107,15 @@ INSERT INTO Hotels (name, geo_length, geo_latitude, stars, id_address)
 VALUES
 ('Hotel Warsaw', 21.0122, 52.2297, 5, 1),
 ('Hotel Krakow', 19.9445, 50.0647, 4, 2);
+
+
+-- Dodanie zdjęć
+INSERT INTO Hotel_images (id_hotel, image_url, description, is_main)
+VALUES
+(1, 'http://localhost:8888/images/hotels/tropikana.jpg', 'Basen', FALSE),
+(1, 'http://localhost:8888/images/hotels/wnętrze.jpg', 'Pokój hotelowy', FALSE),
+(2, 'http://localhost:8888/images/hotels/golab/drzwi.jpg', 'Drzwi hotelu', FALSE),
+(2, 'http://localhost:8888/images/hotels/golab/caly.jpg', 'Hotel z zewnątrz', TRUE);
 
 -- Dodanie użytkowników
 INSERT INTO Users (email, password_hash, birth_date, first_name, last_name, phone_number, role)
