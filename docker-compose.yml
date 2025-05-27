@@ -31,6 +31,20 @@ services:
     networks:
       - hotel_network
 
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_server
+    ports:
+      - "8888:80"
+    volumes:
+      - ./image-server/nginx.conf:/etc/nginx/nginx.conf
+      - ./image-server/images:/usr/share/nginx/html/images
+    command: [nginx, '-g', 'daemon off;', '-c', '/etc/nginx/nginx.conf']
+    depends_on:
+      - backend
+    networks:
+      - hotel_network
+
 volumes:
   postgres_data:
 
