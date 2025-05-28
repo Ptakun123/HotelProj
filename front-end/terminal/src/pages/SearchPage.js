@@ -71,7 +71,24 @@ export default function SearchPage() {
       if (maxStars < 5) payload.max_hotel_stars = maxStars;
 
       const { data } = await api.post('/search_free_rooms', payload);
-      setRooms(data.available_rooms || []);
+      const rooms = data.available_rooms || [];
+
+      const hotelIds = [...new Set(rooms.map(r => r.id_hotel))];
+
+      const imagesMap = {}; 
+      await Promise.all(hotelIds.map(async hid => {
+        const { data: imgs } = await api.get(`/hotel_images/${hid}`);
+
+        const main = imgs.find(img => img.is_main) || imgs[0];
+        imagesMap[hid] = main?.url || null;
+      }));
+
+      const roomsWithImages = rooms.map(r => ({
+        ...r,
+        hotel_image: imagesMap[r.id_hotel],
+      }));
+
+      setRooms(roomsWithImages);
     } catch (err) {
       setError(err.response?.data?.error || 'Błąd wyszukiwania');
       setRooms([]);
