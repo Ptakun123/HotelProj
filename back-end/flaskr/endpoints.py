@@ -816,7 +816,11 @@ def get_all_countries():
 
 @endp_bp.route("/cities", methods=["GET"])
 def get_all_cities():
-    cities = db.session.query(Address.city).distinct().all()
+    country = request.args.get("country")
+    query = db.session.query(Address.city).distinct()
+    if country:
+        query = query.filter(Address.country == country)
+    cities = query.all()
     cities_list = [c.city for c in cities]
     return jsonify({"cities": cities_list}), 200
 

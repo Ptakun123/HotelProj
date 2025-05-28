@@ -25,7 +25,7 @@
         android:layout_width="347dp"
         android:layout_height="54dp"
         android:layout_gravity="center"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
         android:text="Wybierz daty"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -42,47 +42,137 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/hello" />
-
-    <EditText
-        android:id="@+id/editTextNumber"
-        android:layout_width="75dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:ems="10"
-        android:inputType="number"
-        app:layout_constraintStart_toEndOf="@+id/tekst"
-        app:layout_constraintTop_toBottomOf="@+id/chooseDate" />
-
-    <EditText
-        android:id="@+id/editTextNumber2"
-        android:layout_width="76dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="4dp"
-        android:layout_marginTop="4dp"
-        android:ems="10"
-        android:inputType="number"
-        app:layout_constraintStart_toEndOf="@+id/tekst2"
-        app:layout_constraintTop_toBottomOf="@+id/chooseDate" />
-
+    <!-- Etykieta: Cena za noc: od -->
     <TextView
         android:id="@+id/tekst"
-        android:layout_width="102dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="36dp"
-        android:layout_marginTop="20dp"
-        android:text="Cena za noc: od"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/chooseDate" />
-
-    <TextView
-        android:id="@+id/tekst2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:text="do:"
-        app:layout_constraintStart_toEndOf="@+id/editTextNumber"
-        app:layout_constraintTop_toBottomOf="@+id/chooseDate" />
+        android:text="Cena za noc:"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintTop_toBottomOf="@+id/chooseDate"
+        app:layout_constraintStart_toStartOf="parent" />
 
+    <!-- Pole: Od -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/price_from_layout"
+        android:layout_width="90dp"
+        android:layout_height="wrap_content"
+        android:hint="Od"
+        android:layout_marginStart="8dp"
+        app:boxBackgroundMode="outline"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/chooseDate"
+        app:layout_constraintStart_toEndOf="@+id/tekst">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/price_from"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Pole: Do -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/price_to_layout"
+        android:layout_width="90dp"
+        android:layout_height="wrap_content"
+        android:hint="Do"
+        android:layout_marginStart="8dp"
+        app:boxBackgroundMode="outline"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/chooseDate"
+        app:layout_constraintStart_toEndOf="@+id/price_from_layout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/price_to"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Pole: Goście -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/guests_layout"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:hint="Goście"
+        android:layout_marginStart="8dp"
+        app:boxBackgroundMode="outline"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/chooseDate"
+        app:layout_constraintStart_toEndOf="@+id/price_to_layout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/guestsInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Etykieta: Ilość gwiazdek: -->
+    <TextView
+        android:id="@+id/label_star_rating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ilość gwiazdek:"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="16dp"
+        app:layout_constraintTop_toBottomOf="@+id/guests_layout"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Pole: Od (gwiazdki) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/stars_from_layout"
+        android:layout_width="90dp"
+        android:layout_height="wrap_content"
+        android:hint="Od"
+        android:layout_marginStart="8dp"
+        app:boxBackgroundMode="outline"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/guests_layout"
+        app:layout_constraintStart_toEndOf="@+id/label_star_rating">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editStarsFrom"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Pole: Do (gwiazdki) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/stars_to_layout"
+        android:layout_width="90dp"
+        android:layout_height="wrap_content"
+        android:hint="Do"
+        android:layout_marginStart="8dp"
+        app:boxBackgroundMode="outline"
+        app:boxCornerRadiusTopStart="8dp"
+        app:boxCornerRadiusTopEnd="8dp"
+        app:boxCornerRadiusBottomStart="8dp"
+        app:boxCornerRadiusBottomEnd="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/guests_layout"
+        app:layout_constraintStart_toEndOf="@+id/stars_from_layout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editStarsTo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number" />
+    </com.google.android.material.textfield.TextInputLayout>
     <TextView
         android:id="@+id/hello"
         android:layout_width="wrap_content"
@@ -94,5 +184,95 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/title" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/chooseRoomFacilities"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="347dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="Wybierz udogodnienia pokoju"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/chooseHotelFacilities" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/chooseHotelFacilities"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="347dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:text="Wybierz udogodnienia hotelu"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/stars_from_layout" />
+
+    <com.google.android.material.button.MaterialButton
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:id="@+id/btnSortBy"
+        android:layout_width="347dp"
+        android:layout_height="wrap_content"
+        android:text="Sortuj według"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/chooseRoomFacilities" />
+
+    <com.google.android.material.button.MaterialButton
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:id="@+id/btnSortOrder"
+        android:layout_width="347dp"
+        android:layout_height="wrap_content"
+        android:text="Kierunek sortowania"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnSortBy" />
+
+    <Button
+        android:id="@+id/search"
+        android:layout_width="171dp"
+        android:layout_height="54dp"
+        android:text="Szukaj pokoi"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btnSortOrder" />
+    <TextView
+        android:id="@+id/label_destination"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cel podróży"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        app:layout_constraintBottom_toTopOf="@+id/chooseDestination"
+        app:layout_constraintStart_toStartOf="@+id/chooseDestination"
+        android:layout_marginBottom="4dp" />
+    <TextView
+        android:id="@+id/label_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Termin podróży"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        app:layout_constraintBottom_toTopOf="@+id/chooseDate"
+        app:layout_constraintStart_toStartOf="@+id/chooseDate"
+        android:layout_marginBottom="4dp" />
+    <TextView
+        android:id="@+id/label_hotel_facilities"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Udogodnienia hotelu"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        app:layout_constraintBottom_toTopOf="@+id/chooseHotelFacilities"
+        app:layout_constraintStart_toStartOf="@+id/chooseHotelFacilities"
+        android:layout_marginBottom="4dp" />
+    <TextView
+        android:id="@+id/label_room_facilities"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Udogodnienia pokoju"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        app:layout_constraintBottom_toTopOf="@+id/chooseRoomFacilities"
+        app:layout_constraintStart_toStartOf="@+id/chooseRoomFacilities"
+        android:layout_marginBottom="4dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
