@@ -25,6 +25,14 @@ class Hotel(db.Model):
         db.Integer, db.ForeignKey("addresses.id_address"), nullable=False
     )
 
+class HotelImage(db.Model):
+    __tablename__ = "hotel_images"
+    id_image = db.Column(db.Integer, primary_key=True)
+    id_hotel = db.Column(db.Integer, db.ForeignKey("hotels.id_hotel"), nullable=False)
+    image_url = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.String(100))
+    is_main = db.Column(db.Boolean, default=False)
+
 
 class User(db.Model):
     __tablename__ = "users"  # Określenie nazwy tabeli

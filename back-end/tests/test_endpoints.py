@@ -14,6 +14,7 @@ from flaskr.models import (
     HotelHotelFacility,
     Reservation,
     User,
+    HotelImage
 )
 
 
@@ -1268,6 +1269,14 @@ class GetAllListsTestCase(unittest.TestCase):
             hf_pool = HotelFacility(facility_name="basen")
             db.session.add(hf_pool)
             db.session.commit()
+            hotel_image = HotelImage(
+            id_hotel=hotel.id_hotel,
+            image_url="https://example.com/hotel.jpg",
+            description="Testowy obraz hotelu",
+            is_main=True
+        )
+        db.session.add(hotel_image)
+        db.session.commit()
         self.client = self.app.test_client()
 
     def tearDown(self):
@@ -1291,6 +1300,108 @@ class GetAllListsTestCase(unittest.TestCase):
         response = self.client.get("/hotel_facilities")
         self.assertEqual(response.status_code, 200)
         self.assertIn("hotel_facilities", response.get_json())
+
+class GetHotelImagesTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.app.config["TESTING"] = True
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        db.init_app(self.app)
+        self.app.register_blueprint(endp_bp, url_prefix="")
+        with self.app.app_context():
+            db.create_all()
+            
+            # Dodaj adres
+            address = Address(
+                country="Polska",
+                city="Warszawa",
+                street="Testowa",
+                building="1",
+                zip_code="00-001",
+            )
+            db.session.add(address)
+            db.session.commit()
+            
+            # Dodaj hotel
+            hotel = Hotel(
+                name="Hotel Testowy",
+                stars=4,
+                geo_length=21.0122,
+                geo_latitude=52.2297,
+                id_address=address.id_address,
+            )
+            db.session.add(hotel)
+            db.session.commit()
+            self.hotel_id = hotel.id_hotel
+            
+            # Dodaj zdjęcia hotelu
+            image1 = HotelImage(
+                id_hotel=hotel.id_hotel,
+                image_url="https://example.com/hotel1.jpg",
+                description="Główny widok hotelu",
+                is_main=True
+            )
+            image2 = HotelImage(
+                id_hotel=hotel.id_hotel,
+                image_url="https://example.com/hotel2.jpg",
+                description="Basen",
+                is_main=False
+            )
+            db.session.add_all([image1, image2])
+            db.session.commit()
+            
+        self.client = self.app.test_client()
+
+    def tearDown(self):
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    def test_get_hotel_images_success(self):
+        response = self.client.get(f"/hotel_images/{self.hotel_id}")
+        self.assertEqual(response.status_code, 200)
+        
+        data = response.get_json()
+        self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 2)
+        
+        # Sprawdź pierwsze zdjęcie
+        self.assertEqual(data[0]['url'], "https://example.com/hotel1.jpg")
+        self.assertEqual(data[0]['description'], "Główny widok hotelu")
+        self.assertTrue(data[0]['is_main'])
+        
+        # Sprawdź drugie zdjęcie
+        self.assertEqual(data[1]['url'], "https://example.com/hotel2.jpg")
+        self.assertEqual(data[1]['description'], "Basen")
+        self.assertFalse(data[1]['is_main'])
+
+    def test_get_hotel_images_empty(self):
+        # Test dla hotelu bez zdjęć
+        new_hotel = Hotel(
+            name="Nowy Hotel",
+            stars=3,
+            geo_length=0,
+            geo_latitude=0,
+            id_address=1
+        )
+        with self.app.app_context():
+            db.session.add(new_hotel)
+            db.session.commit()
+            new_hotel_id = new_hotel.id_hotel
+        
+        response = self.client.get(f"/hotel_images/{new_hotel_id}")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), [])
+
+    def test_get_hotel_images_invalid_id(self):
+        response = self.client.get("/hotel_images/99999")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), [])
+
+    def test_get_hotel_images_invalid_format(self):
+        response = self.client.get("/hotel_images/abc")
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Nieprawidłowy format identyfikatora hotelu", response.get_json().get("error", ""))
 
 
 if __name__ == "__main__":
