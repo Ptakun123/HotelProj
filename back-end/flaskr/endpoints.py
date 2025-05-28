@@ -197,7 +197,7 @@ def search_free_rooms():
         # Build base query
         nights = (end_date - start_date).days
         query_str = """
-            SELECT r.id_room, r.capacity, r.price_per_night, h.name AS hotel_name, a.city, a.country, h.stars
+            SELECT r.id_room, r.capacity, r.price_per_night, h.id_hotel,h.name  AS hotel_name, a.city, a.country, h.stars
             FROM rooms r
             JOIN hotels h ON r.id_hotel = h.id_hotel
             JOIN addresses a ON h.id_address = a.id_address
@@ -340,6 +340,7 @@ def search_free_rooms():
                 "price_per_night": float(row.price_per_night),
                 "total_price": float(row.price_per_night) * nights,
                 "hotel_name": row.hotel_name,
+                "hotel_id": row.id_hotel,
                 "city": row.city,
                 "country": row.country,
                 "hotel_stars": row.stars,
