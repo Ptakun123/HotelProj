@@ -10,7 +10,7 @@ from flask_jwt_extended import JWTManager
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
-
+    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
     # Konfiguracja domyślna
     app.config.from_mapping(
         SECRET_KEY="dev",
