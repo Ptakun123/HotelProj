@@ -5,6 +5,8 @@ from datetime import datetime
 from flaskr.extensions import db
 from sqlalchemy.sql import text
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.security import check_password_hash, generate_password_hash
+from traceback import print_exc
 
 endp_bp = Blueprint("endp", __name__)
 
@@ -392,36 +394,11 @@ def post_reservation():
                 400,
             )
 
-        try:
-            id_room = int(data["id_room"])
-            id_user = int(data["id_user"])
-        except (ValueError, TypeError):
-            return (
-                jsonify(
-                    {
-                        "error": "Identyfikator pokoju i użytkownika muszą być liczbami całkowitymi"
-                    }
-                ),
-                400,
-            )
+        id_user = data["id_user"]
 
-        full_name = data["full_name"]
-        if not isinstance(full_name, str) or not full_name.strip():
-            return (
-                jsonify({"error": "Imię i nazwisko musi być niepustym stringiem"}),
-                400,
-            )
-
-        bill_type = data["bill_type"]
-        if not isinstance(bill_type, str) or bill_type not in {"I", "R"}:
-            return (
-                jsonify(
-                    {
-                        "error": "Typ rachunku musi być stringiem i mieć wartość 'I' lub 'R'"
-                    }
-                ),
-                400,
-            )
+        current_user_id = int(get_jwt_identity())
+        if id_user != current_user_id:
+            return jsonify({"error": "Brak uprawnień do dokonania tej rezerwacji"}), 403
 
         try:
             first_night = datetime.strptime(data["first_night"], "%Y-%m-%d").date()
@@ -446,7 +423,7 @@ def post_reservation():
         if not room:
             return jsonify({"error": "Pokój nie istnieje"}), 404
 
-        current_user_id = get_jwt_identity()
+        current_user_id = int(get_jwt_identity())
         if str(id_user) != str(current_user_id):
             return jsonify({"error": "Brak uprawnień do dokonania tej rezerwacji"}), 403
 
@@ -537,8 +514,8 @@ def post_cancellation():
 
         id_user = data["id_user"]
 
-        current_user_id = get_jwt_identity()
-        if str(id_user) != str(current_user_id):
+        current_user_id = int(get_jwt_identity())
+        if id_user != current_user_id:
             return (
                 jsonify({"error": "Brak uprawnień do anulowania tej rezerwacji"}),
                 403,
@@ -590,13 +567,12 @@ def get_user(id_user):
             ),
             400,
         )
-
     user = User.query.get(id_user)
     if not user:
         return jsonify({"error": "Użytkownik nie istnieje"}), 404
 
-    current_user_id = get_jwt_identity()
-    if str(id_user) != str(current_user_id):
+    current_user_id = int(get_jwt_identity())
+    if id_user != current_user_id:
         return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
 
     user_data = {
@@ -609,6 +585,59 @@ def get_user(id_user):
     }
     return jsonify(user_data), 200
 
+
+@endp_bp.route("/user/<int:id_user>/password", methods=["PUT"])
+@jwt_required()
+def change_password(id_user):
+    try:
+        current_user_id = int(get_jwt_identity())
+        if id_user != current_user_id:
+            return jsonify({"error": "Brak uprawnień do zmiany hasła"}), 403
+
+        data = request.get_json(silent=True)
+        if not data:
+            return jsonify({"error": "Brak lub niepoprawny payload JSON"}), 400
+
+        current_password = data.get("current_password")
+        new_password     = data.get("new_password")
+        if not current_password or not new_password:
+            return jsonify({"error": "Podaj aktualne i nowe hasło"}), 400
+
+        user = User.query.get(id_user)
+        if not user:
+            return jsonify({"error": "Użytkownik nie istnieje"}), 404
+
+        if not check_password_hash(user.password_hash, current_password):
+            return jsonify({"error": "Nieprawidłowe aktualne hasło"}), 400
+
+        user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        return jsonify({"message": "Hasło zostało zmienione"}), 200
+
+    except Exception as e:
+        # wypisz pełny traceback w logach
+        print_exc()
+        db.session.rollback()
+        return jsonify({
+            "error": "Wystąpił wewnętrzny błąd serwera podczas zmiany hasła",
+            "details": str(e)
+        }), 500
+
+
+@endp_bp.route("/user/<int:id_user>", methods=["DELETE"])
+@jwt_required()
+def delete_user(id_user):
+    current_user_id = int(get_jwt_identity())
+    if id_user != current_user_id:
+        return jsonify({"error": "Brak uprawnień do usunięcia konta"}), 403
+
+    user = User.query.get(id_user)
+    if not user:
+        return jsonify({"error": "Użytkownik nie istnieje"}), 404
+
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"message": "Konto zostało usunięte"}), 200
 
 @endp_bp.route("/user/<int:id_user>/reservations", methods=["GET"])
 @jwt_required()
@@ -624,12 +653,8 @@ def get_user_reservations(id_user):
             400,
         )
 
-    user = User.query.get(id_user)
-    if not user:
-        return jsonify({"error": "Użytkownik nie istnieje"}), 404
-
-    current_user_id = get_jwt_identity()
-    if str(id_user) != str(current_user_id):
+    current_user_id = int(get_jwt_identity())
+    if id_user != current_user_id:
         return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
 
     status_arg = request.args.get("status")
@@ -838,6 +863,15 @@ def get_all_hotel_facilities():
     facilities = db.session.query(HotelFacility.facility_name).all()
     facilities_list = [f.facility_name for f in facilities]
     return jsonify({"hotel_facilities": facilities_list}), 200
+
+@endp_bp.route("/hotel_images/<int:hotel_id>", methods=["GET"])
+def get_hotel_images(hotel_id):
+    images = HotelImage.query.filter_by(id_hotel=hotel_id).all()
+    return jsonify([{
+        'url': img.image_url,
+        'description': img.description,
+        'is_main': img.is_main
+    } for img in images])
 
 
 @endp_bp.route("/hotel_images/<int:hotel_id>", methods=["GET"])

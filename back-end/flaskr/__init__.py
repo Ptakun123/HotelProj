@@ -1,5 +1,5 @@
 import os
-from flask import Flask
+from flask import Flask, jsonify
 from datetime import timedelta
 from sqlalchemy import text
 from flask_cors import CORS
@@ -10,7 +10,7 @@ from flask_jwt_extended import JWTManager
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
-    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+
     # Konfiguracja domyślna
     app.config.from_mapping(
         SECRET_KEY="dev",
@@ -70,6 +70,19 @@ def create_app(test_config=None):
     @app.route("/hello")
     def hello():
         return "Hello, World!"
+
+    # JWT error handlers
+    @jwt.unauthorized_loader
+    def unauthorized_callback(reason):
+        return jsonify({"error": "Brak lub nieprawidłowy token JWT", "details": reason}), 401
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(reason):
+        return jsonify({"error": "Nieprawidłowy token JWT", "details": reason}), 422
+
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        return jsonify({"error": "Token JWT wygasł"}), 401
 
     return app
 

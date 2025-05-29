@@ -98,8 +98,8 @@ def login():
             return jsonify({"error": "Nieprawidłowy email lub hasło"}), 401
 
         # Generuj tokeny JWT
-        access_token = create_access_token(identity=user.id_user)
-        refresh_token = create_refresh_token(identity=user.id_user)
+        access_token = create_access_token(identity=str(user.id_user))
+        refresh_token = create_refresh_token(identity=str(user.id_user))
 
         return (
             jsonify(
@@ -108,7 +108,7 @@ def login():
                     "refresh_token": refresh_token,
                     "token_type": "Bearer",
                     "user": {
-                        "id": user.id_user,
+                        "id_user": user.id_user,
                         "email": user.email,
                         "first_name": user.first_name,
                         "last_name": user.last_name,
