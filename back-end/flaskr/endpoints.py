@@ -872,13 +872,3 @@ def get_hotel_images(hotel_id):
         'description': img.description,
         'is_main': img.is_main
     } for img in images])
-
-
-@endp_bp.route("/hotel_images/<int:hotel_id>", methods=["GET"])
-def get_hotel_images(hotel_id):
-    images = HotelImage.query.filter_by(id_hotel=hotel_id).all()
-    return jsonify([{
-        'url': img.image_url,
-        'description': img.description,
-        'is_main': img.is_main
-    } for img in images])
