@@ -1,5 +1,6 @@
 package com.example.aplikacja;
 
+// Aktywność rejestracji nowego użytkownika. Wysyła dane do backendu i obsługuje walidację formularza.
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -32,6 +33,7 @@ import okhttp3.Response;
 
 public class RegisterActivity extends AppCompatActivity {
 
+    // Pola formularza rejestracji
     private TextInputEditText emailInput, passwordInput, birthDateInput,
             firstNameInput, lastNameInput, phoneNumberInput;
     private MaterialButton registerButton;
@@ -41,7 +43,7 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.register_activity);
 
-        // Inicjalizacja pól
+        // Inicjalizacja pól formularza
         emailInput = findViewById(R.id.email_input);
         passwordInput = findViewById(R.id.password_input);
         birthDateInput = findViewById(R.id.birth_date_input);
@@ -50,10 +52,11 @@ public class RegisterActivity extends AppCompatActivity {
         phoneNumberInput = findViewById(R.id.phone_number_input);
         registerButton = findViewById(R.id.register_button);
 
-        // Obsługa kliknięcia
+        // Obsługa kliknięcia przycisku rejestracji
         registerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                // Pobranie i przygotowanie danych z formularza
                 String email = emailInput.getText().toString().trim();
                 String password = passwordInput.getText().toString();
                 String birthDate = birthDateInput.getText().toString().trim();
@@ -62,7 +65,7 @@ public class RegisterActivity extends AppCompatActivity {
                 String phoneNumber = phoneNumberInput.getText().toString().trim();
                 ObjectMapper mapper = new ObjectMapper();
 
-                // Prosta walidacja
+                // Prosta walidacja pól formularza
                 if (email.isEmpty() || password.isEmpty() || birthDate.isEmpty() || firstName.isEmpty() || lastName.isEmpty() || phoneNumber.isEmpty()) {
                     Toast.makeText(RegisterActivity.this, "Wszystkie pola muszą być niepuste", Toast.LENGTH_SHORT).show();
                     return;
@@ -71,6 +74,7 @@ public class RegisterActivity extends AppCompatActivity {
                     Toast.makeText(RegisterActivity.this, "Nieprawidłowy format email", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                // Walidacja formatu daty urodzenia
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                 sdf.setLenient(false);
                 try {
@@ -79,6 +83,7 @@ public class RegisterActivity extends AppCompatActivity {
                     Toast.makeText(RegisterActivity.this, "Nieprawidłowy format daty", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                // Przygotowanie danych do wysłania do backendu
                 Map<String, String> dane = new HashMap<>();
                 dane.put("email", email);
                 dane.put("password", password);
@@ -97,21 +102,25 @@ public class RegisterActivity extends AppCompatActivity {
                 RequestBody body = RequestBody.create(json, JSON);
                 OkHttpClient client = new OkHttpClient();
                 Request request = new Request.Builder().url("http://10.0.2.2:5000/register").post(body).build();
+                // Wysłanie żądania rejestracji do backendu
                 client.newCall(request).enqueue(new Callback() {
                     @Override
                     public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                        // Obsługa błędu połączenia
                         e.printStackTrace();
                     }
 
                     @Override
                     public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                         if(!response.isSuccessful()){
+                            // Obsługa błędu rejestracji (np. email zajęty)
                             JsonNode error = mapper.readTree(response.body().string());
                             runOnUiThread(() -> {
                                 Toast.makeText(RegisterActivity.this, error.get("error").asText(), Toast.LENGTH_SHORT).show();
                             });
                         }
                         else{
+                            // Sukces rejestracji
                             assert response.body() != null;
                             Log.d("My_app", "Zarejestrowano ");
                             runOnUiThread(() -> {

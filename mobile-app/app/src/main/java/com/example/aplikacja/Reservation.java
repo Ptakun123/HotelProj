@@ -1,4 +1,5 @@
 package com.example.aplikacja;
+// Model rezerwacji hotelowej, implementuje Parcelable do przekazywania między aktywnościami.
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -11,6 +12,7 @@ import java.util.List;
 
 public class Reservation implements Parcelable {
 
+    // Podstawowe dane rezerwacji
     public String id_reservation;
     public String first_night;
     public String last_night;
@@ -18,10 +20,14 @@ public class Reservation implements Parcelable {
     public double price;
     public String bill_type;
     public String status;
+
+    // Dane pokoju
     public String id_room;
     public String capacity;
     public double price_per_night;
     public List<String> room_facilities = new ArrayList<>();
+
+    // Dane hotelu
     public String id_hotel;
     public String hotel_name;
     public String stars;
@@ -90,7 +96,7 @@ public class Reservation implements Parcelable {
         return hotel_facilities;
     }
 
-    // Parcel constructor
+    // Konstruktor do odczytu z Parcel (Parcelable)
     protected Reservation(Parcel in) {
         id_reservation = in.readString();
         first_night = in.readString();
@@ -133,6 +139,7 @@ public class Reservation implements Parcelable {
         return 0;
     }
 
+    // Parcelable CREATOR
     public static final Creator<Reservation> CREATOR = new Creator<Reservation>() {
         @Override
         public Reservation createFromParcel(Parcel in) {
@@ -145,6 +152,7 @@ public class Reservation implements Parcelable {
         }
     };
 
+    // Tworzy obiekt Reservation na podstawie JSON-a z backendu
     public static Reservation fromJson(JSONObject obj) throws JSONException {
         Reservation res = new Reservation();
         res.id_reservation = obj.getString("id_reservation");

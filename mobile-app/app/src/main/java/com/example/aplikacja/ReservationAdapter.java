@@ -1,5 +1,7 @@
 package com.example.aplikacja;
 
+// Adapter do wyświetlania listy rezerwacji użytkownika w RecyclerView.
+// Pozwala na anulowanie rezerwacji bezpośrednio z listy.
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -29,8 +31,11 @@ import okhttp3.Response;
 
 public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.ViewHolder> {
 
+    // Kontekst aktywności/fragmentu
     private final Context context;
+    // Lista rezerwacji do wyświetlenia
     private final List<Reservation> reservations;
+    // Dane użytkownika (tokeny, id)
     UserAndTokens userAndTokens;
 
     public ReservationAdapter(Context context, List<Reservation> reservations, UserAndTokens userAndTokens) {
@@ -39,6 +44,7 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
         this.userAndTokens = userAndTokens;
     }
 
+    // ViewHolder przechowujący referencje do widoków pojedynczego elementu listy
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView textHotelName, textReservationDates, textReservationPrice;
         Button buttonCancel;
@@ -55,18 +61,21 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
     @NonNull
     @Override
     public ReservationAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Tworzy widok pojedynczej rezerwacji
         View view = LayoutInflater.from(context).inflate(R.layout.item_reservation, parent, false);
         return new ViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ReservationAdapter.ViewHolder holder, int position) {
+        // Przypisuje dane rezerwacji do widoku
         Reservation reservation = reservations.get(position);
 
         holder.textHotelName.setText(reservation.getHotel_name());
         holder.textReservationDates.setText(reservation.getFirst_night() + " - " + reservation.getLast_night());
         holder.textReservationPrice.setText("Cena: " + reservation.getPrice() + " PLN");
 
+        // Obsługa przycisku anulowania rezerwacji
         holder.buttonCancel.setOnClickListener(v -> {
             new AlertDialog.Builder(context)
                     .setTitle("Anuluj rezerwację")
@@ -81,9 +90,11 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
 
     @Override
     public int getItemCount() {
+        // Zwraca liczbę rezerwacji
         return reservations.size();
     }
 
+    // Wysyła żądanie anulowania rezerwacji do backendu i usuwa ją z listy po sukcesie
     private void cancelReservation(int reservationId, int position) {
         OkHttpClient client = new OkHttpClient();
 
@@ -106,6 +117,7 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                // Obsługa błędu sieci
                 ((Activity) context).runOnUiThread(() ->
                         Toast.makeText(context, "Błąd sieci: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
@@ -115,6 +127,7 @@ public class ReservationAdapter extends RecyclerView.Adapter<ReservationAdapter.
             public void onResponse(Call call, Response response) throws IOException {
                 ((Activity) context).runOnUiThread(() -> {
                     if (response.isSuccessful()) {
+                        // Usunięcie rezerwacji z listy po anulowaniu
                         reservations.remove(position);
                         notifyItemRemoved(position);
                         Toast.makeText(context, "Rezerwacja anulowana", Toast.LENGTH_SHORT).show();

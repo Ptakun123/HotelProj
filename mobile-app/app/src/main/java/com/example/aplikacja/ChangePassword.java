@@ -1,5 +1,6 @@
 package com.example.aplikacja;
 
+// Aktywność pozwalająca użytkownikowi zmienić swoje hasło.
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -24,8 +25,10 @@ import java.io.IOException;
 
 public class ChangePassword extends AppCompatActivity {
 
+    // Dane użytkownika przekazane przez Intent
     private UserAndTokens user;
 
+    // Pola do wprowadzania starego i nowego hasła
     private EditText oldPasswordEditText;
     private EditText newPasswordEditText;
     private Button changePasswordButton;
@@ -35,6 +38,7 @@ public class ChangePassword extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.change_password);
 
+        // Inicjalizacja pól widoku
         oldPasswordEditText = findViewById(R.id.oldPasswordEditText);
         newPasswordEditText = findViewById(R.id.newPasswordEditText);
         changePasswordButton = findViewById(R.id.changePasswordButton);
@@ -48,10 +52,12 @@ public class ChangePassword extends AppCompatActivity {
             return;
         }
 
+        // Obsługa kliknięcia przycisku zmiany hasła
         changePasswordButton.setOnClickListener(v -> {
             String oldPass = oldPasswordEditText.getText().toString().trim();
             String newPass = newPasswordEditText.getText().toString().trim();
 
+            // Walidacja pól wejściowych
             if (TextUtils.isEmpty(oldPass)) {
                 oldPasswordEditText.setError("Wprowadź stare hasło");
                 return;
@@ -65,11 +71,12 @@ public class ChangePassword extends AppCompatActivity {
                 return;
             }
 
-            // Tu wywołaj metodę zmieniającą hasło, np. API call
+            // Wywołanie metody zmieniającej hasło (API call)
             changePassword(oldPass, newPass);
         });
     }
 
+    // Wysyła żądanie zmiany hasła do backendu
     private void changePassword(String oldPassword, String newPassword) {
         OkHttpClient client = new OkHttpClient();
 
@@ -92,6 +99,7 @@ public class ChangePassword extends AppCompatActivity {
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
+                    // Obsługa błędu połączenia
                     runOnUiThread(() ->
                             Toast.makeText(ChangePassword.this,
                                     "Błąd połączenia: " + e.getMessage(),
@@ -104,12 +112,13 @@ public class ChangePassword extends AppCompatActivity {
 
                     runOnUiThread(() -> {
                         if (response.isSuccessful()) {
+                            // Sukces - hasło zmienione
                             Toast.makeText(ChangePassword.this,
                                     "Hasło zostało zmienione pomyślnie!",
                                     Toast.LENGTH_LONG).show();
                             finish();
                         } else {
-
+                            // Błąd zmiany hasła
                             Toast.makeText(ChangePassword.this,
                                     "Błąd zmiany hasła: " + responseBody,
                                     Toast.LENGTH_LONG).show();

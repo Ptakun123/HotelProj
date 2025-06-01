@@ -1,5 +1,6 @@
 package com.example.aplikacja;
 
+// Główna aktywność aplikacji hotelowej - umożliwia wyszukiwanie ofert, wybór filtrów i przejście do konta użytkownika.
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -32,35 +33,53 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    // Przycisk wyboru miejsca docelowego
     Button chooseDestination;
+    // Przycisk wyboru daty pobytu
     Button chooseDate;
+    // Pola do wprowadzania liczby gości, zakresu cen i gwiazdek
     EditText guests, minPrice, maxPrice, minStars, maxStars;
+    // Tablice z krajami i miastami do wyboru
     String[] countries, cities;
+    // Wybrane wartości przez użytkownika
     String chosencountry, chosencity, startDate, endDate;
+    // Dane zalogowanego użytkownika
     UserAndTokens userAndTokens;
+    // Liczba nocy pobytu
     int nights;
+    // Mapper do obsługi JSON
     ObjectMapper mapper;
+    // Przycisk wyboru udogodnień pokoju i hotelu
     Button chooseRoomFacilities;
     Button chooseHotelFacilities;
+    // Tablice z udogodnieniami i ich zaznaczeniem
     String[] roomFacilities, hotelFacilities;
     boolean[] selectedRoomFacilities, selectedHotelFacilities;
+    // Wybrane opcje sortowania
     private String selectedSortBy = null;
     private String selectedSortOrder = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        // Pobranie danych użytkownika z Intentu
         Intent intent =getIntent();
         mapper = new ObjectMapper();
         userAndTokens = intent.getExtras().getParcelable("User_data");
         TextView hello = findViewById(R.id.hello);
+        // Przycisk wyboru miejsca docelowego
         chooseDestination = findViewById(R.id.chooseDestination);
         chooseDestination.setOnClickListener(this);
+        // Przycisk wyboru daty pobytu
         chooseDate = findViewById(R.id.chooseDate);
         chooseDate.setOnClickListener(this);
+        // Powitanie użytkownika
         hello.setText("Witaj " + userAndTokens.getFirst_name() + " " + userAndTokens.getLast_name());
+        // Przycisk wyboru udogodnień pokoju i hotelu
         chooseRoomFacilities = findViewById(R.id.chooseRoomFacilities);
         chooseHotelFacilities = findViewById(R.id.chooseHotelFacilities);
+        // Pola do wprowadzania liczby gości, zakresu cen i gwiazdek
         guests = findViewById(R.id.guestsInput);
         minPrice = findViewById(R.id.price_from);
         maxPrice = findViewById(R.id.price_to);
@@ -69,6 +88,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Button btnToggleFilters = findViewById(R.id.btnToggleFilters);
         View additionalFiltersContainer = findViewById(R.id.additionalFiltersContainer);
 
+        // Przełączanie dodatkowych filtrów
         btnToggleFilters.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -82,6 +102,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
 
+        // Obsługa wyboru udogodnień pokoju i hotelu
         chooseRoomFacilities.setOnClickListener(this);
         chooseHotelFacilities.setOnClickListener(this);
         Button btnSortBy = findViewById(R.id.btnSortBy);
@@ -89,11 +110,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Button search = findViewById(R.id.search);
         Button my_account = findViewById(R.id.my_account);
         my_account.setOnClickListener(v ->{
+            // Przejście do szczegółów konta użytkownika
             Intent intent1 = new Intent(this, AccountDetails.class);
             intent1.putExtra("User_details", userAndTokens);
             startActivity(intent1);
         });
         search.setOnClickListener(v -> {
+            // Walidacja wymaganych pól przed wyszukiwaniem
             if (startDate == null || endDate == null || guests.getText().length()==0) {
                 Toast.makeText(this, "Musisz wybrać termin oraz liczbę gości", Toast.LENGTH_SHORT).show();
                 return;
@@ -186,7 +209,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
             Intent intent1 = new Intent(MainActivity.this, SearchResultsActivity.class);
-
+            // Przekazanie wszystkich wybranych filtrów do aktywności wyników wyszukiwania
             // Wysyłanie danych podstawowych
             intent1.putExtra("country", chosencountry);
             intent1.putExtra("city", chosencity);
@@ -241,6 +264,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             startActivity(intent1);
         });
+        // Obsługa wyboru sortowania
         btnSortBy.setOnClickListener(v -> {
             String[] options = {"cena", "gwiazdki"};
             new MaterialAlertDialogBuilder(this)
@@ -272,6 +296,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
+        // Obsługa wyboru udogodnień pokoju
         if (v.getId() == R.id.chooseRoomFacilities) {
             OkHttpClient client = new OkHttpClient();
             Request request = new Request.Builder().url("http://10.0.2.2:5000/room_facilities").build();
@@ -311,6 +336,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             });
         }
 
+        // Obsługa wyboru udogodnień hotelu
         if (v.getId() == R.id.chooseHotelFacilities) {
             OkHttpClient client = new OkHttpClient();
             Request request = new Request.Builder().url("http://10.0.2.2:5000/hotel_facilities").build();
@@ -372,6 +398,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 chooseDate.setText(startDate +" - " + endDate);
             });
         }
+        // Obsługa wyboru kraju i miasta
         if (v.getId() == R.id.chooseDestination) {
             OkHttpClient client = new OkHttpClient();
             Request request = new Request.Builder().url("http://10.0.2.2:5000/countries").build();
