@@ -398,10 +398,9 @@ def post_reservation():
                 400,
             )
 
-
-        id_room = data["id_room"]           # <-- DODAJ TO
+        id_room = data["id_room"]
         id_user = data["id_user"]
-        full_name = data["full_name"]       # <-- DODAJ TO
+        full_name = data["full_name"]
         bill_type = data["bill_type"]
 
         current_user_id = int(get_jwt_identity())
@@ -438,7 +437,6 @@ def post_reservation():
         nights = (last_night - first_night).days
         total_price = float(room.price_per_night) * nights
 
-        # Sprawdzenie, czy pokój jest dostępny w podanym terminie
         # Sprawdzenie, czy pokój jest dostępny w podanym terminie
         query = db.session.execute(
             text(
@@ -609,7 +607,7 @@ def change_password(id_user):
             return jsonify({"error": "Brak lub niepoprawny payload JSON"}), 400
 
         current_password = data.get("current_password")
-        new_password     = data.get("new_password")
+        new_password = data.get("new_password")
         if not current_password or not new_password:
             return jsonify({"error": "Podaj aktualne i nowe hasło"}), 400
 
@@ -625,13 +623,17 @@ def change_password(id_user):
         return jsonify({"message": "Hasło zostało zmienione"}), 200
 
     except Exception as e:
-        # wypisz pełny traceback w logach
         print_exc()
         db.session.rollback()
-        return jsonify({
-            "error": "Wystąpił wewnętrzny błąd serwera podczas zmiany hasła",
-            "details": str(e)
-        }), 500
+        return (
+            jsonify(
+                {
+                    "error": "Wystąpił wewnętrzny błąd serwera podczas zmiany hasła",
+                    "details": str(e),
+                }
+            ),
+            500,
+        )
 
 
 @endp_bp.route("/user/<int:id_user>", methods=["DELETE"])
@@ -648,6 +650,7 @@ def delete_user(id_user):
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "Konto zostało usunięte"}), 200
+
 
 @endp_bp.route("/user/<int:id_user>/reservations", methods=["GET"])
 @jwt_required()
@@ -703,7 +706,7 @@ def get_user_reservations(id_user):
         room = Room.query.get(res.id_room)
         hotel = Hotel.query.get(room.id_hotel)
 
-        # Udogodnienia pokoju
+        # Room facilities
         room_facilities = (
             db.session.query(RoomFacility.facility_name)
             .join(
@@ -715,7 +718,7 @@ def get_user_reservations(id_user):
         )
         room_facilities = [f.facility_name for f in room_facilities]
 
-        # Udogodnienia hotelu
+        # Hotel facilities
         hotel_facilities = (
             db.session.query(HotelFacility.facility_name)
             .join(
@@ -874,11 +877,17 @@ def get_all_hotel_facilities():
     facilities_list = [f.facility_name for f in facilities]
     return jsonify({"hotel_facilities": facilities_list}), 200
 
+
 @endp_bp.route("/hotel_images/<int:hotel_id>", methods=["GET"])
 def get_hotel_images(hotel_id):
     images = HotelImage.query.filter_by(id_hotel=hotel_id).all()
-    return jsonify([{
-        'url': img.image_url,
-        'description': img.description,
-        'is_main': img.is_main
-    } for img in images])
+    return jsonify(
+        [
+            {
+                "url": img.image_url,
+                "description": img.description,
+                "is_main": img.is_main,
+            }
+            for img in images
+        ]
+    )
