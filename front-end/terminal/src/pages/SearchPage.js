@@ -7,6 +7,7 @@ import Card from '../components/ui/Card';
 import RoomCard from '../components/RoomCard';
 import api from '../api/api';
 import { FaStar } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 const ROOM_OPTIONS = [
   { label: 'Klimatyzacja', value: 'Air Conditioning' },
@@ -47,9 +48,11 @@ export default function SearchPage() {
 
   /* ---------- helpers ---------- */
   const toggleRoomFac  = v => setSelectedRoomFac(prev =>
-    prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v]);
+    prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v]
+  );
   const toggleHotelFac = v => setSelectedHotelFac(prev =>
-    prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v]);
+    prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v]
+  );
 
   const StarRating = ({ value, onChange, max = 5 }) => (
     <div className="flex space-x-1">
@@ -69,24 +72,28 @@ export default function SearchPage() {
     if (!startDate || !endDate)  return setError('Wybierz daty');
     if (guests <= 0)             return setError('Liczba gości musi być > 0');
     setError(null);
+
+    // ZAPISZ DATY DO localStorage
+    localStorage.setItem('search_startDate', startDate.toISOString());
+    localStorage.setItem('search_endDate', endDate.toISOString());
+
     try {
       const payload = {
         start_date: startDate.toISOString().slice(0, 10),
         end_date:   endDate.toISOString().slice(0, 10),
         guests
       };
-      if (lowestPrice)      payload.lowest_price      = +lowestPrice;
-      if (highestPrice)     payload.highest_price     = +highestPrice;
+      if (lowestPrice)         payload.lowest_price      = +lowestPrice;
+      if (highestPrice)        payload.highest_price     = +highestPrice;
       if (selectedRoomFac.length)  payload.room_facilities  = selectedRoomFac;
       if (selectedHotelFac.length) payload.hotel_facilities = selectedHotelFac;
-      if (countries) payload.countries = countries.split(',').map(c => c.trim());
-      if (cities)    payload.city      = cities.split(',').map(c => c.trim());
-      if (minStars > 0) payload.min_hotel_stars = minStars;
+      if (countries)           payload.countries         = countries.split(',').map(c => c.trim());
+      if (cities)              payload.city              = cities.split(',').map(c => c.trim());
+      if (minStars > 0)        payload.min_hotel_stars   = minStars;
 
       /* --- zapytanie do backendu --- */
-      const { data }   = await api.post('/search_free_rooms', payload);
-      console.log('DEBUG: /search_free_rooms data', data);
-      const rawRooms   = data.available_rooms || [];
+      const { data } = await api.post('/search_free_rooms', payload);
+      const rawRooms = data.available_rooms || [];
 
       /* odrzucamy rekordy bez id_hotel */
       const roomsArr = rawRooms.filter(r => r.id_hotel);
@@ -114,7 +121,6 @@ export default function SearchPage() {
         ...r,
         hotel_image: imagesMap[r.id_hotel] || null
       }));
-      console.log('DEBUG: finalRooms', finalRooms);
 
       setRooms(finalRooms);
     } catch (err) {
@@ -126,10 +132,14 @@ export default function SearchPage() {
   /* ---------- fetch facilities (dynamic options) ---------- */
   useEffect(() => {
     async function fetchFacilities() {
-      const { data: roomFacilities } = await api.get('/room_facilities');
-      const { data: hotelFacilities } = await api.get('/hotel_facilities');
-      setRoomOptions(roomFacilities.room_facilities.map(f => ({ label: f, value: f })));
-      setHotelOptions(hotelFacilities.hotel_facilities.map(f => ({ label: f, value: f })));
+      try {
+        const { data: roomFacilities } = await api.get('/room_facilities');
+        const { data: hotelFacilities } = await api.get('/hotel_facilities');
+        setRoomOptions(roomFacilities.room_facilities.map(f => ({ label: f, value: f })));
+        setHotelOptions(hotelFacilities.hotel_facilities.map(f => ({ label: f, value: f })));
+      } catch (e) {
+        console.warn('Nie udało się pobrać listy udogodnień', e.message);
+      }
     }
     fetchFacilities();
   }, []);
@@ -152,9 +162,15 @@ export default function SearchPage() {
               <span className="block text-sm font-medium mb-1 text-gray-700">Data rozpoczęcia</span>
               <DatePicker
                 selected={startDate}
-                onChange={d => { setStartDate(d); if (endDate && d > endDate) setEndDate(null); }}
-                selectsStart startDate={startDate} endDate={endDate}
-                placeholderText="Wybierz datę" dateFormat="yyyy-MM-dd"
+                onChange={d => {
+                  setStartDate(d);
+                  if (endDate && d > endDate) setEndDate(null);
+                }}
+                selectsStart
+                startDate={startDate}
+                endDate={endDate}
+                placeholderText="Wybierz datę"
+                dateFormat="yyyy-MM-dd"
                 className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -164,8 +180,12 @@ export default function SearchPage() {
               <DatePicker
                 selected={endDate}
                 onChange={setEndDate}
-                selectsEnd startDate={startDate} endDate={endDate} minDate={startDate}
-                placeholderText="Wybierz datę" dateFormat="yyyy-MM-dd"
+                selectsEnd
+                startDate={startDate}
+                endDate={endDate}
+                minDate={startDate}
+                placeholderText="Wybierz datę"
+                dateFormat="yyyy-MM-dd"
                 className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -173,7 +193,9 @@ export default function SearchPage() {
             <div>
               <span className="block text-sm font-medium mb-1 text-gray-700">Liczba gości</span>
               <input
-                type="number" min="1" value={guests}
+                type="number"
+                min="1"
+                value={guests}
                 onChange={e => setGuests(Math.max(+e.target.value || 1, 1))}
                 placeholder="Liczba gości"
                 className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
@@ -199,7 +221,9 @@ export default function SearchPage() {
                 <div>
                   <span className="block text-sm font-medium mb-1 text-gray-700">Min cena (za noc)</span>
                   <input
-                    type="number" step="0.01" value={lowestPrice}
+                    type="number"
+                    step="0.01"
+                    value={lowestPrice}
                     onChange={e => setLowestPrice(e.target.value)}
                     placeholder="Min cena"
                     className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
@@ -208,7 +232,9 @@ export default function SearchPage() {
                 <div>
                   <span className="block text-sm font-medium mb-1 text-gray-700">Max cena (za noc)</span>
                   <input
-                    type="number" step="0.01" value={highestPrice}
+                    type="number"
+                    step="0.01"
+                    value={highestPrice}
                     onChange={e => setHighestPrice(e.target.value)}
                     placeholder="Max cena"
                     className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
@@ -221,7 +247,10 @@ export default function SearchPage() {
                 <legend className="font-medium mb-2 text-gray-800">Udogodnienia pokoi</legend>
                 <div className="flex flex-wrap gap-4">
                   {roomOptions.map(opt => (
-                    <label key={opt.value} className="inline-flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-xl shadow-sm hover:bg-primary/10 transition">
+                    <label
+                      key={opt.value}
+                      className="inline-flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-xl shadow-sm hover:bg-primary/10 transition"
+                    >
                       <input
                         type="checkbox"
                         checked={selectedRoomFac.includes(opt.value)}
@@ -239,7 +268,10 @@ export default function SearchPage() {
                 <legend className="font-medium mb-2 text-gray-800">Udogodnienia hotelu</legend>
                 <div className="flex flex-wrap gap-4">
                   {hotelOptions.map(opt => (
-                    <label key={opt.value} className="inline-flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-xl shadow-sm hover:bg-primary/10 transition">
+                    <label
+                      key={opt.value}
+                      className="inline-flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-xl shadow-sm hover:bg-primary/10 transition"
+                    >
                       <input
                         type="checkbox"
                         checked={selectedHotelFac.includes(opt.value)}
@@ -257,7 +289,9 @@ export default function SearchPage() {
                 <div>
                   <span className="block text-sm font-medium mb-1 text-gray-700">Państwa (oddzielone przecinkami)</span>
                   <input
-                    type="text" value={countries} onChange={e => setCountries(e.target.value)}
+                    type="text"
+                    value={countries}
+                    onChange={e => setCountries(e.target.value)}
                     placeholder="Polska, Niemcy"
                     className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
                   />
@@ -265,7 +299,9 @@ export default function SearchPage() {
                 <div>
                   <span className="block text-sm font-medium mb-1 text-gray-700">Miasta (oddzielone przecinkami)</span>
                   <input
-                    type="text" value={cities} onChange={e => setCities(e.target.value)}
+                    type="text"
+                    value={cities}
+                    onChange={e => setCities(e.target.value)}
                     placeholder="Warszawa, Berlin"
                     className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
                   />
@@ -308,7 +344,15 @@ export default function SearchPage() {
                     onError={e => { e.currentTarget.style.display = 'none'; }}
                   />
                 )}
-                <RoomCard room={room} />
+                <Link
+                  to={`/room/${room.id_room}`}
+                  state={{
+                    startDate,
+                    endDate
+                  }}
+                >
+                  <RoomCard room={room} />
+                </Link>
               </Card>
             ))
           ) : (
