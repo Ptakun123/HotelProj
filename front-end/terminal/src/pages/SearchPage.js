@@ -22,7 +22,7 @@ export default function SearchPage() {
   const [countries, setCountries] = useState('');
   const [cities, setCities] = useState('');
   const [minStars, setMinStars] = useState(0);
-  const [maxStars, setMaxStars] = useState(5);
+  const [maxStars] = useState(5);
   const [rooms, setRooms] = useState([]);
   const [error, setError] = useState(null);
   const [openAdvanced, setOpenAdvanced] = useState(false);
@@ -56,18 +56,39 @@ export default function SearchPage() {
     if (guests <= 0) return setError('Liczba gości musi być > 0');
     setError(null);
     try {
-      const payload = { start_date: startDate.toISOString().slice(0,10), end_date: endDate.toISOString().slice(0,10), guests };
+      const payload = { 
+        start_date: startDate.toISOString().slice(0,10), 
+        end_date: endDate.toISOString().slice(0,10), 
+        guests 
+      };
       if (lowestPrice) payload.lowest_price = parseFloat(lowestPrice);
       if (highestPrice) payload.highest_price = parseFloat(highestPrice);
       if (selectedRoomFac.length) payload.room_facilities = selectedRoomFac;
       if (selectedHotelFac.length) payload.hotel_facilities = selectedHotelFac;
       if (countries) payload.countries = countries.split(',').map(c => c.trim());
-      if (cities) payload.cities = cities.split(',').map(c => c.trim());
-      payload.min_hotel_stars = minStars;
-      payload.max_hotel_stars = maxStars;
+      if (cities) payload.city = cities.split(',').map(c => c.trim());
+      if (minStars > 0) payload.min_hotel_stars = minStars;
+      if (maxStars < 5) payload.max_hotel_stars = maxStars;
 
       const { data } = await api.post('/search_free_rooms', payload);
-      setRooms(data.available_rooms || []);
+      const rooms = data.available_rooms || [];
+
+      const hotelIds = [...new Set(rooms.map(r => r.id_hotel))];
+
+      const imagesMap = {}; 
+      await Promise.all(hotelIds.map(async hid => {
+        const { data: imgs } = await api.get(`/hotel_images/${hid}`);
+
+        const main = imgs.find(img => img.is_main) || imgs[0];
+        imagesMap[hid] = main?.url || null;
+      }));
+
+      const roomsWithImages = rooms.map(r => ({
+        ...r,
+        hotel_image: imagesMap[r.id_hotel],
+      }));
+
+      setRooms(roomsWithImages);
     } catch (err) {
       setError(err.response?.data?.error || 'Błąd wyszukiwania');
       setRooms([]);
@@ -259,12 +280,29 @@ export default function SearchPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {rooms.length > 0 ? (
             rooms.map(room => (
-              <Card key={room.id_room} className="bg-white/95 rounded-2xl shadow-lg hover:shadow-2xl transition">
+              <Card
+                key={room.id_room}
+                className="bg-white/95 rounded-2xl shadow-lg hover:shadow-2xl transition flex flex-col items-center"
+              >
+                <img
+                  src={
+                    room.hotel_image
+                      ? `http://localhost:8888/images/hotels/${room.hotel_image}`
+                      : `http://localhost:8888/images/hotels/${room.hotel_name
+                          ?.toLowerCase()
+                          .replace(/\s/g, '')}.jpg`
+                  }
+                  alt={room.hotel_name}
+                  className="w-full h-48 object-cover rounded-t-2xl mb-4"
+                  onError={e => { e.currentTarget.style.display = 'none'; }}
+                />
                 <RoomCard room={room} />
               </Card>
             ))
           ) : (
-            <p className="text-gray-500 col-span-full text-center text-lg">Brak dostępnych pokoi dla wybranych kryteriów.</p>
+            <p className="text-gray-500 col-span-full text-center text-lg">
+              Brak dostępnych pokoi dla wybranych kryteriów.
+            </p>
           )}
         </div>
       </div>
