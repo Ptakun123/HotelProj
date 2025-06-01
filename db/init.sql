@@ -141,7 +141,9 @@ INSERT INTO Hotel_images (id_hotel, image_url, description, is_main) VALUES
 (9, 'http://localhost:8888/images/hotels/wroclaw_radisson_exterior.jpg', 'Radisson Blu Wrocław', TRUE),
 (10, 'http://localhost:8888/images/hotels/poznan_puro_exterior.jpg', 'Puro Poznań', TRUE),
 (11, 'http://localhost:8888/images/hotels/zakopane_mercure_mountains.jpg', 'Widok na góry', TRUE),
-(12, 'http://localhost:8888/images/hotels/bratislava_carlton_exterior.jpg', 'Carlton Bratysława', TRUE);
+(12, 'http://localhost:8888/images/hotels/bratislava_carlton_exterior.jpg', 'Carlton Bratysława', TRUE),
+(1, 'http://localhost:8888/images/hotels/warsaw_lobby.jpg', 'Lobby', FALSE),
+(1, 'http://localhost:8888/images/hotels/warsaw_room.jpg', 'Room', FALSE);
 
 
 -- Dodanie użytkowników

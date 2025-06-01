@@ -5,6 +5,7 @@ from sqlalchemy import text
 from flask_cors import CORS
 from flaskr.extensions import db
 from flask_jwt_extended import JWTManager
+from config import JWT_SECRET_KEY, SECRET_KEY, SQLALCHEMY_DATABASE_URI_ENV
 
 
 def create_app(test_config=None):
@@ -13,13 +14,11 @@ def create_app(test_config=None):
     CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
     # Konfiguracja domyślna
     app.config.from_mapping(
-        SECRET_KEY="dev",
-        SQLALCHEMY_DATABASE_URI="postgresql://admin:securepassword@db:5432/hotel_db",
+        SECRET_KEY=SECRET_KEY,
+        SQLALCHEMY_DATABASE_URI=SQLALCHEMY_DATABASE_URI_ENV,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
     )
-    app.config["JWT_SECRET_KEY"] = (
-        "tajny-klucz-123"  # Klucz do JWT (w produkcji użyj zmiennej środowiskowej!)
-    )
+    app.config["JWT_SECRET_KEY"] = (JWT_SECRET_KEY)
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Ważność tokenu
 
     if test_config is None:
