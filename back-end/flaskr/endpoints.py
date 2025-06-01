@@ -473,11 +473,11 @@ def post_reservation():
         hotel = Hotel.query.get(room.id_hotel)
         address = Address.query.get(hotel.id_address)
 
-        # send_email(
-        #     get_confirmation_email(
-        #         user=user, reservation=new_reservation, hotel=hotel, address=address
-        #     )
-        # )
+        send_email(
+            get_confirmation_email(
+                user=user, reservation=new_reservation, hotel=hotel, address=address
+            )
+         )
 
         return jsonify({"message": "Rezerwacja została pomyślnie utworzona"}), 201
 
