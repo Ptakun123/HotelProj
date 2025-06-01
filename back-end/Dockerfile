@@ -1,17 +1,17 @@
-# Użyj oficjalnego obrazu Pythona
+# Oficjalny obraz Pythona
 FROM python:3.11-slim
 
-# Ustaw katalog roboczy
+# Katalog roboczy w kontenerze
 WORKDIR /app
 
-# Skopiuj pliki projektu do kontenera
+# Kopiowanie plików projektu
 COPY . .
 
-# Zainstaluj zależności
+# Instalacja zależności
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Ustaw zmienną środowiskową (jeśli potrzebujesz)
+# Zmienna środowiskowa - logowanie bez buforowania
 ENV PYTHONUNBUFFERED=1
 
-# Domyślna komenda (możesz ją nadpisać w docker-compose)
+# Domyślna komenda uruchamiająca aplikację Flask
 CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
