@@ -146,8 +146,8 @@ public class SearchResultsActivity extends AppCompatActivity {
                     roomsList = Arrays.asList(roomsArray);
                     for (int i = 0; i < roomsList.size(); ++i) {
                         roomsList.get(i).imageURLs = new ArrayList<>();
-                        String hotel_id = roomsList.get(i).hotel_id;
-                        Request imgRequest = new Request.Builder().url("http://10.0.2.2:5000/hotel_images/" + hotel_id).build();
+                        String id_hotel = roomsList.get(i).id_hotel;
+                        Request imgRequest = new Request.Builder().url("http://10.0.2.2:5000/hotel_images/" + id_hotel).build();
                         int finalI = i;
                         client.newCall(imgRequest).enqueue(new Callback() {
                             @Override

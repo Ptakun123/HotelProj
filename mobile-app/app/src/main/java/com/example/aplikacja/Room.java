@@ -11,7 +11,7 @@ public class Room implements Parcelable {
     public String city;
     public String country;
     public String hotel_name;
-    public String hotel_id;
+    public String id_hotel;
     public int hotel_stars;
     public int id_room;
     public double price_per_night;
@@ -29,7 +29,7 @@ public class Room implements Parcelable {
         city = in.readString();
         country = in.readString();
         hotel_name = in.readString();
-        hotel_id = in.readString();
+        id_hotel = in.readString();
         hotel_stars = in.readInt();
         id_room = in.readInt();
         price_per_night = in.readDouble();
@@ -43,7 +43,7 @@ public class Room implements Parcelable {
         dest.writeString(city);
         dest.writeString(country);
         dest.writeString(hotel_name);
-        dest.writeString(hotel_id);
+        dest.writeString(id_hotel);
         dest.writeInt(hotel_stars);
         dest.writeInt(id_room);
         dest.writeDouble(price_per_night);

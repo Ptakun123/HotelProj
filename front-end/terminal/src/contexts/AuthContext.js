@@ -26,6 +26,9 @@ export function AuthProvider({ children }) {
     });
     setUser(data.user);
     localStorage.setItem('user', JSON.stringify(data.user));
+    if (data.access_token) {
+      localStorage.setItem('token', data.access_token);
+    }
     return data;
   };
 

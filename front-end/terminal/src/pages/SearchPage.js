@@ -73,19 +73,24 @@ export default function SearchPage() {
       const { data } = await api.post('/search_free_rooms', payload);
       const rooms = data.available_rooms || [];
 
-      const hotelIds = [...new Set(rooms.map(r => r.id_hotel))];
+      const validRooms = rooms.filter(r => r.id_hotel);
 
-      const imagesMap = {}; 
+      const hotelIds = [...new Set(validRooms.map(r => r.id_hotel))];
+      const imagesMap = {};
+
       await Promise.all(hotelIds.map(async hid => {
         const { data: imgs } = await api.get(`/hotel_images/${hid}`);
-
-        const main = imgs.find(img => img.is_main) || imgs[0];
-        imagesMap[hid] = main?.url || null;
+        let mainUrl = null;
+        if (imgs && imgs.length > 0) {
+          const main = imgs.find(img => img.is_main) || imgs[0];
+          mainUrl = main.url;
+        }
+        imagesMap[hid] = mainUrl;
       }));
 
-      const roomsWithImages = rooms.map(r => ({
+      const roomsWithImages = validRooms.map(r => ({
         ...r,
-        hotel_image: imagesMap[r.id_hotel],
+        hotel_image: imagesMap[r.id_hotel] || null,
       }));
 
       setRooms(roomsWithImages);
@@ -287,10 +292,10 @@ export default function SearchPage() {
                 <img
                   src={
                     room.hotel_image
-                      ? `http://localhost:8888/images/hotels/${room.hotel_image}`
+                      ? room.hotel_image
                       : `http://localhost:8888/images/hotels/${room.hotel_name
                           ?.toLowerCase()
-                          .replace(/\s/g, '')}.jpg`
+                          .replace(/\s/g, '_')}.jpg`
                   }
                   alt={room.hotel_name}
                   className="w-full h-48 object-cover rounded-t-2xl mb-4"

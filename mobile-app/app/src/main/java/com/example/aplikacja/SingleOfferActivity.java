@@ -166,7 +166,7 @@ public class SingleOfferActivity extends AppCompatActivity implements OnMapReady
         mMap = googleMap;
 
         if (room != null) {
-            fetchHotelLocation(Integer.parseInt(room.hotel_id));
+            fetchHotelLocation(Integer.parseInt(room.id_hotel));
         }
     }
 

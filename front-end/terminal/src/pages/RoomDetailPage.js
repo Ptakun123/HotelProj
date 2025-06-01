@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import PageLayout from '../components/layout/PageLayout';
 import Card from '../components/ui/Card';
 import api from '../api/api';
+import RoomCard from '../components/RoomCard';
 
 export default function RoomDetailPage() {
   const { id_room } = useParams();
@@ -64,6 +65,9 @@ export default function RoomDetailPage() {
             <p>Brak danych o lokalizacji hotelu.</p>
           )}
         </Card>
+        <Link to={`/room/${room.id_room}`}>
+          <RoomCard room={room} />
+        </Link>
       </div>
     </PageLayout>
   );

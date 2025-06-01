@@ -346,7 +346,7 @@ def search_free_rooms():
                 "price_per_night": float(row.price_per_night),
                 "total_price": float(row.price_per_night) * nights,
                 "hotel_name": row.hotel_name,
-                "hotel_id": row.id_hotel,
+                "id_hotel": row.id_hotel,
                 "city": row.city,
                 "country": row.country,
                 "hotel_stars": row.stars,

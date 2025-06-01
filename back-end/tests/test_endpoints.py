@@ -1391,7 +1391,7 @@ class GetHotelAndRoomTestCase(unittest.TestCase):
             room = Room(id_hotel=hotel.id_hotel, capacity=2, price_per_night=100)
             db.session.add(room)
             db.session.commit()
-            self.hotel_id = hotel.id_hotel
+            self.id_hotel = hotel.id_hotel
             self.room_id = room.id_room
         self.client = self.app.test_client()
 
@@ -1406,7 +1406,7 @@ class GetHotelAndRoomTestCase(unittest.TestCase):
         self.assertIn("Hotel nie istnieje", response.get_json().get("error", ""))
 
     def test_successful_get_hotel(self):
-        response = self.client.get(f"/hotel/{self.hotel_id}")
+        response = self.client.get(f"/hotel/{self.id_hotel}")
         self.assertEqual(response.status_code, 200)
         self.assertIn("id_hotel", response.get_json())
 
@@ -1520,7 +1520,7 @@ class GetHotelImagesTestCase(unittest.TestCase):
             )
             db.session.add(hotel)
             db.session.commit()
-            self.hotel_id = hotel.id_hotel
+            self.id_hotel = hotel.id_hotel
 
             image1 = HotelImage(
                 id_hotel=hotel.id_hotel,
@@ -1545,7 +1545,7 @@ class GetHotelImagesTestCase(unittest.TestCase):
             db.drop_all()
 
     def test_get_hotel_images_success(self):
-        response = self.client.get(f"/hotel_images/{self.hotel_id}")
+        response = self.client.get(f"/hotel_images/{self.id_hotel}")
         self.assertEqual(response.status_code, 200)
 
         data = response.get_json()
@@ -1567,9 +1567,9 @@ class GetHotelImagesTestCase(unittest.TestCase):
         with self.app.app_context():
             db.session.add(new_hotel)
             db.session.commit()
-            new_hotel_id = new_hotel.id_hotel
+            new_id_hotel = new_hotel.id_hotel
 
-        response = self.client.get(f"/hotel_images/{new_hotel_id}")
+        response = self.client.get(f"/hotel_images/{new_id_hotel}")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), [])
 
