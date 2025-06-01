@@ -274,11 +274,11 @@ def search_free_rooms():
 
         # Price range for the whole stay
         if lowest_price is not None:
-            where_clauses.append("(r.price_per_night * :nights) >= :lowest_price")
+            where_clauses.append("r.price_per_night >= :lowest_price")
             params["lowest_price"] = lowest_price
             params["nights"] = nights
         if highest_price is not None:
-            where_clauses.append("(r.price_per_night * :nights) <= :highest_price")
+            where_clauses.append("r.price_per_night <= :highest_price")
             params["highest_price"] = highest_price
             params["nights"] = nights
 
