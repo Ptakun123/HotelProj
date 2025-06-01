@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_margin="8dp"
+    android:layout_height="wrap_content"
+    android:elevation="4dp"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/textHotelName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Hotel XYZ"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/textReservationDates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2024-12-01 – 2024-12-05" />
+
+        <TextView
+            android:id="@+id/textReservationPrice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cena: 1200.00 PLN"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/buttonCancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Anuluj rezerwację"
+            android:backgroundTint="@android:color/holo_red_dark"
+            android:textColor="@android:color/white"
+            android:visibility="visible" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

@@ -40,6 +40,8 @@ dependencies {
     implementation ("com.google.android.material:material:1.11.0")
     implementation ("com.squareup.okhttp3:okhttp:4.9.3")
     implementation ("com.fasterxml.jackson.core:jackson-databind:2.17.0")
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

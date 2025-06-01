@@ -65,12 +65,33 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         maxPrice = findViewById(R.id.price_to);
         minStars = findViewById(R.id.editStarsFrom);
         maxStars = findViewById(R.id.editStarsTo);
+        Button btnToggleFilters = findViewById(R.id.btnToggleFilters);
+        View additionalFiltersContainer = findViewById(R.id.additionalFiltersContainer);
+
+        btnToggleFilters.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (additionalFiltersContainer.getVisibility() == View.GONE) {
+                    additionalFiltersContainer.setVisibility(View.VISIBLE);
+                    btnToggleFilters.setText("Ukryj dodatkowe filtry");
+                } else {
+                    additionalFiltersContainer.setVisibility(View.GONE);
+                    btnToggleFilters.setText("Dodatkowe filtry");
+                }
+            }
+        });
 
         chooseRoomFacilities.setOnClickListener(this);
         chooseHotelFacilities.setOnClickListener(this);
         Button btnSortBy = findViewById(R.id.btnSortBy);
         Button btnSortOrder = findViewById(R.id.btnSortOrder);
         Button search = findViewById(R.id.search);
+        Button my_account = findViewById(R.id.my_account);
+        my_account.setOnClickListener(v ->{
+            Intent intent1 = new Intent(this, AccountDetails.class);
+            intent1.putExtra("User_details", userAndTokens);
+            startActivity(intent1);
+        });
         search.setOnClickListener(v -> {
             if (startDate == null || endDate == null || guests.getText().length()==0) {
                 Toast.makeText(this, "Musisz wybrać termin oraz liczbę gości", Toast.LENGTH_SHORT).show();
@@ -173,11 +194,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             intent1.putExtra("guests", Integer.parseInt(guests.getText().toString()));
 
             // Zakres ceny
+            if(intMinPrice !=-1) {
+                String minPricewhole = Integer.toString(intMaxPrice * nights);
+                intent1.putExtra("minPrice", minPricewhole);
+            }
+            if(intMaxPrice!= -1) {
+                String maxPricewhole = Integer.toString(intMinPrice * nights);
+                intent1.putExtra("maxPrice",maxPricewhole);
+            }
 
-            String minPricewhole =Integer.toString(Integer.parseInt(minPriceStr) * nights);
-            String maxPricewhole =Integer.toString(Integer.parseInt(maxPriceStr) * nights);
-            intent1.putExtra("minPrice", minPricewhole);
-            intent1.putExtra("maxPrice",maxPricewhole);
+
 
             // Zakres gwiazdek
             intent1.putExtra("minStars", minStars.getText().toString());
@@ -401,7 +427,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                                         String body = response.body().string();
                                                         JsonNode cityData = mapper.readTree(body);
                                                         cities = cityData.get("cities").traverse(mapper).readValueAs(String[].class);
-
+                                                        ArrayList<String> cities_full = new ArrayList<>();
+                                                        cities_full.add("Dowolne miasto");
+                                                        for(int i=0; i<cities.length; ++i)
+                                                            cities_full.add(cities[i]);
+                                                        cities = cities_full.toArray(new String[0]);
                                                         runOnUiThread(() -> {
                                                             final int[] wybraneMiasto = {-1};
                                                             new MaterialAlertDialogBuilder(MainActivity.this)
