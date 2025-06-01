@@ -12,21 +12,32 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+
 import org.json.JSONObject;
 
 import java.io.IOException;
 
+import okhttp3.Call;
+import okhttp3.Callback;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class SingleOfferActivity extends AppCompatActivity {
+public class SingleOfferActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private Room room;
     private UserAndTokens user;
     String stardDate, endDate;
+    private GoogleMap mMap;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +70,11 @@ public class SingleOfferActivity extends AppCompatActivity {
                 etNip.setText(""); // opcjonalnie czyści pole NIP
             }
         });
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.mapFragment);
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(this);
+        }
 
 
         // Wypełnij widoki danymi
@@ -143,6 +159,57 @@ public class SingleOfferActivity extends AppCompatActivity {
                         }
                     }
                 });
+            }
+        });
+    }
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+
+        if (room != null) {
+            fetchHotelLocation(Integer.parseInt(room.hotel_id));
+        }
+    }
+
+    private void fetchHotelLocation(int hotelId) {
+        OkHttpClient client = new OkHttpClient();
+        String url = "http://10.0.2.2:5000/hotel/" + hotelId;
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                runOnUiThread(() ->
+                        Toast.makeText(SingleOfferActivity.this, "Błąd pobierania lokalizacji hotelu", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    runOnUiThread(() ->
+                            Toast.makeText(SingleOfferActivity.this, "Błąd serwera przy pobieraniu lokalizacji hotelu", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                String responseData = response.body().string();
+                try {
+                    JSONObject jsonObject = new JSONObject(responseData);
+                    double latitude = jsonObject.getDouble("geo_latitude");
+                    double longitude = jsonObject.getDouble("geo_length");
+
+                    runOnUiThread(() -> {
+                        LatLng hotelLocation = new LatLng(latitude, longitude);
+                        mMap.addMarker(new MarkerOptions().position(hotelLocation).title(room.hotel_name));
+                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(hotelLocation, 15f));
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    runOnUiThread(() ->
+                            Toast.makeText(SingleOfferActivity.this, "Błąd parsowania lokalizacji hotelu", Toast.LENGTH_SHORT).show());
+                }
             }
         });
     }

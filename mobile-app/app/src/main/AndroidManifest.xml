@@ -2,7 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+
     <application
+
         android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -46,8 +48,12 @@
             android:name=".ChangePassword"
             android:exported="true">
         </activity>
-
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyA-z0IJ__DTjS_zfH18HPNfR3w3SrP-Tt8"
+            />
     </application>
+
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"> </uses-permission>
     <uses-permission android:name="android.permission.INTERNET"/>
 </manifest>

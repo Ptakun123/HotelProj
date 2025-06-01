@@ -23,6 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Objects;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -241,23 +242,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             startActivity(intent1);
         });
         btnSortBy.setOnClickListener(v -> {
-            String[] options = {"price", "stars"};
+            String[] options = {"cena", "gwiazdki"};
             new MaterialAlertDialogBuilder(this)
                     .setTitle("Sortuj według")
                     .setItems(options, (dialog, which) -> {
-                        selectedSortBy = options[which];
-                        btnSortBy.setText("Sortuj: " + selectedSortBy);
+                        if(Objects.equals(options[which], "cena"))
+                        selectedSortBy ="price";
+                        else selectedSortBy ="stars";
+                        btnSortBy.setText("Sortuj: " + options[which]);
                     })
                     .show();
         });
 
         btnSortOrder.setOnClickListener(v -> {
-            String[] options = {"asc", "desc"};
+            String[] options = {"rosnąco", "malejąco"};
             new MaterialAlertDialogBuilder(this)
                     .setTitle("Kierunek sortowania")
                     .setItems(options, (dialog, which) -> {
-                        selectedSortOrder = options[which];
-                        btnSortOrder.setText("Kierunek: " + selectedSortOrder);
+                        if(Objects.equals(options[which], "rosnąco"))
+                            selectedSortOrder = "asc";
+                        if(Objects.equals(options[which], "malejąco"))
+                            selectedSortOrder = "desc";
+                        btnSortOrder.setText("Kierunek: " +options[which]);
                     })
                     .show();
         });
