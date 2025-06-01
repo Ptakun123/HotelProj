@@ -274,11 +274,11 @@ def search_free_rooms():
 
         # Price range for the whole stay
         if lowest_price is not None:
-            where_clauses.append("(r.price_per_night * :nights) >= :lowest_price")
+            where_clauses.append("r.price_per_night >= :lowest_price")
             params["lowest_price"] = lowest_price
             params["nights"] = nights
         if highest_price is not None:
-            where_clauses.append("(r.price_per_night * :nights) <= :highest_price")
+            where_clauses.append("r.price_per_night <= :highest_price")
             params["highest_price"] = highest_price
             params["nights"] = nights
 
@@ -398,11 +398,38 @@ def post_reservation():
                 400,
             )
 
+        try:
+            id_room = int(data["id_room"])
+            id_user = int(data["id_user"])
+        except ValueError:
+            return (
+                jsonify(
+                    {
+                        "error": "Nieprawidłowy format identyfikatora użytkownika lub pokoju. Użyj liczby całkowitej"
+                    }
+                ),
+                400,
+            )
 
-        id_room = data["id_room"]           # <-- DODAJ TO
-        id_user = data["id_user"]
-        full_name = data["full_name"]       # <-- DODAJ TO
+        full_name = data["full_name"]
+
+        if not isinstance(full_name, str) or not full_name.strip():
+            return (
+                jsonify({"error": "Imię i nazwisko musi być niepustym stringiem"}),
+                400,
+            )
+
         bill_type = data["bill_type"]
+
+        if not isinstance(bill_type, str) or bill_type not in ("I", "R"):
+            return (
+                jsonify(
+                    {
+                        "error": "Typ rachunku musi być stringiem i mieć wartość 'I' dla faktur lub 'R' dla paragonów"
+                    }
+                ),
+                400,
+            )
 
         current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
@@ -431,15 +458,10 @@ def post_reservation():
         if not room:
             return jsonify({"error": "Pokój nie istnieje"}), 404
 
-        current_user_id = int(get_jwt_identity())
-        if str(id_user) != str(current_user_id):
-            return jsonify({"error": "Brak uprawnień do dokonania tej rezerwacji"}), 403
-
         nights = (last_night - first_night).days
         total_price = float(room.price_per_night) * nights
 
-        # Sprawdzenie, czy pokój jest dostępny w podanym terminie
-        # Sprawdzenie, czy pokój jest dostępny w podanym terminie
+        # Check if room is available in given time period
         query = db.session.execute(
             text(
                 """
@@ -510,9 +532,7 @@ def post_cancellation():
     try:
         data = request.get_json()
 
-        required_fields = [
-            "id_reservation",
-        ]
+        required_fields = ["id_reservation", "id_user"]
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             return (
@@ -522,7 +542,17 @@ def post_cancellation():
                 400,
             )
 
-        id_user = data["id_user"]
+        try:
+            id_user = int(data["id_user"])
+        except ValueError:
+            return (
+                jsonify(
+                    {
+                        "error": "Nieprawidłowy format identyfikatora użytkownika. Użyj liczby całkowitej"
+                    }
+                ),
+                400,
+            )
 
         current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
@@ -600,22 +630,48 @@ def get_user(id_user):
 @jwt_required()
 def change_password(id_user):
     try:
+        data = request.get_json()
+
+        required_fields = ["id_user", "current_password", "new_password"]
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            return (
+                jsonify(
+                    {"error": "Brak wymaganych pól", "missing_fields": missing_fields}
+                ),
+                400,
+            )
+
+        if not isinstance(id_user, int):
+            return (
+                jsonify(
+                    {
+                        "error": "Nieprawidłowy format identyfikatora użytkownika. Użyj liczby całkowitej"
+                    }
+                ),
+                400,
+            )
+
         current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
             return jsonify({"error": "Brak uprawnień do zmiany hasła"}), 403
 
-        data = request.get_json(silent=True)
-        if not data:
-            return jsonify({"error": "Brak lub niepoprawny payload JSON"}), 400
-
-        current_password = data.get("current_password")
-        new_password     = data.get("new_password")
-        if not current_password or not new_password:
-            return jsonify({"error": "Podaj aktualne i nowe hasło"}), 400
+        current_password = data["current_password"]
+        new_password = data["new_password"]
+        if (
+            not isinstance(current_password, str)
+            or not current_password.strip()
+            or not isinstance(new_password, str)
+            or not new_password.strip()
+        ):
+            return (
+                jsonify(
+                    {"error": "Aktualne i nowe hasło muszą być niepustymi stringami"}
+                ),
+                400,
+            )
 
         user = User.query.get(id_user)
-        if not user:
-            return jsonify({"error": "Użytkownik nie istnieje"}), 404
 
         if not check_password_hash(user.password_hash, current_password):
             return jsonify({"error": "Nieprawidłowe aktualne hasło"}), 400
@@ -625,13 +681,17 @@ def change_password(id_user):
         return jsonify({"message": "Hasło zostało zmienione"}), 200
 
     except Exception as e:
-        # wypisz pełny traceback w logach
         print_exc()
         db.session.rollback()
-        return jsonify({
-            "error": "Wystąpił wewnętrzny błąd serwera podczas zmiany hasła",
-            "details": str(e)
-        }), 500
+        return (
+            jsonify(
+                {
+                    "error": "Wystąpił wewnętrzny błąd serwera podczas zmiany hasła",
+                    "details": str(e),
+                }
+            ),
+            500,
+        )
 
 
 @endp_bp.route("/user/<int:id_user>", methods=["DELETE"])
@@ -648,6 +708,7 @@ def delete_user(id_user):
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "Konto zostało usunięte"}), 200
+
 
 @endp_bp.route("/user/<int:id_user>/reservations", methods=["GET"])
 @jwt_required()
@@ -703,7 +764,7 @@ def get_user_reservations(id_user):
         room = Room.query.get(res.id_room)
         hotel = Hotel.query.get(room.id_hotel)
 
-        # Udogodnienia pokoju
+        # Room facilities
         room_facilities = (
             db.session.query(RoomFacility.facility_name)
             .join(
@@ -715,7 +776,7 @@ def get_user_reservations(id_user):
         )
         room_facilities = [f.facility_name for f in room_facilities]
 
-        # Udogodnienia hotelu
+        # Hotel facilities
         hotel_facilities = (
             db.session.query(HotelFacility.facility_name)
             .join(
@@ -874,11 +935,32 @@ def get_all_hotel_facilities():
     facilities_list = [f.facility_name for f in facilities]
     return jsonify({"hotel_facilities": facilities_list}), 200
 
-@endp_bp.route("/hotel_images/<int:hotel_id>", methods=["GET"])
-def get_hotel_images(hotel_id):
-    images = HotelImage.query.filter_by(id_hotel=hotel_id).all()
-    return jsonify([{
-        'url': img.image_url,
-        'description': img.description,
-        'is_main': img.is_main
-    } for img in images])
+
+@endp_bp.route("/hotel_images/<int:id_hotel>", methods=["GET"])
+def get_hotel_images(id_hotel):
+
+    if not isinstance(id_hotel, int):
+        return (
+            jsonify(
+                {
+                    "error": "Nieprawidłowy format identyfikatora hotelu. Użyj liczby całkowitej"
+                }
+            ),
+            400,
+        )
+
+    hotel = Hotel.query.get(id_hotel)
+    if not hotel:
+        return jsonify({"error": "Hotel nie istnieje"}), 404
+
+    images = HotelImage.query.filter_by(id_hotel=id_hotel).all()
+    return jsonify(
+        [
+            {
+                "url": img.image_url,
+                "description": img.description,
+                "is_main": img.is_main,
+            }
+            for img in images
+        ]
+    )

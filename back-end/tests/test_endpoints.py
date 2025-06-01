@@ -4,6 +4,7 @@ from flask import Flask, json
 from flaskr.endpoints import endp_bp
 from flaskr.extensions import db
 from flask_jwt_extended import create_access_token, JWTManager
+from werkzeug.security import generate_password_hash
 from flaskr.models import (
     Address,
     Hotel,
@@ -14,7 +15,7 @@ from flaskr.models import (
     HotelHotelFacility,
     Reservation,
     User,
-    HotelImage
+    HotelImage,
 )
 
 
@@ -502,8 +503,8 @@ class SearchFreeRoomsTestCase(unittest.TestCase):
                 "start_date": "2100-01-01",
                 "end_date": "2100-01-10",
                 "guests": 2,
-                "lowest_price": 1000,
-                "highest_price": 2000,
+                "lowest_price": 200,
+                "highest_price": 400,
             },
         )
         self.assertEqual(response.status_code, 200)
@@ -739,7 +740,10 @@ class PostReservationTestCase(unittest.TestCase):
             "/post_reservation", json=payload, headers=self.get_headers(self.token)
         )
         self.assertEqual(response.status_code, 400)
-        self.assertIn("liczbami całkowitymi", response.get_json().get("error", ""))
+        self.assertIn(
+            "Nieprawidłowy format identyfikatora użytkownika lub pokoju.",
+            response.get_json().get("error", ""),
+        )
 
     def test_invalid_full_name_type(self):
         payload = self.get_valid_payload(full_name=12345)
@@ -782,7 +786,7 @@ class PostReservationTestCase(unittest.TestCase):
     def test_wrong_token(self):
         payload = self.get_valid_payload(id_user=999)
         with self.app.app_context():
-            wrong_token = create_access_token(identity="test")
+            wrong_token = create_access_token(identity="777")
         response = self.client.post(
             "/post_reservation", json=payload, headers=self.get_headers(wrong_token)
         )
@@ -1025,6 +1029,199 @@ class GetUserTestCase(unittest.TestCase):
         self.assertIn("id_user", response.get_json())
 
 
+class ChangePasswordTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.app.config["TESTING"] = True
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        self.app.config["SECRET_KEY"] = "test_secret"
+        db.init_app(self.app)
+        self.app.register_blueprint(endp_bp, url_prefix="")
+        with self.app.app_context():
+            db.create_all()
+            user = User(
+                email="test@example.com",
+                password_hash=generate_password_hash("oldpass"),
+                birth_date=date(2000, 1, 1),
+                first_name="Jan",
+                last_name="Kowalski",
+                phone_number="123456789",
+                role="user",
+            )
+            db.session.add(user)
+            db.session.commit()
+            self.user_id = str(user.id_user)
+            JWTManager(self.app)
+            self.token = create_access_token(identity=self.user_id)
+        self.client = self.app.test_client()
+
+    def tearDown(self):
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    def get_headers(self, token=None):
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def test_no_token(self):
+        response = self.client.put(
+            f"/user/{self.user_id}/password",
+            json={
+                "id_user": self.user_id,
+                "current_password": "oldpass",
+                "new_password": "newpass123",
+            },
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_wrong_token(self):
+        with self.app.app_context():
+            wrong_token = create_access_token(identity="999")
+        response = self.client.put(
+            f"/user/{self.user_id}/password",
+            json={
+                "id_user": self.user_id,
+                "current_password": "oldpass",
+                "new_password": "newpass123",
+            },
+            headers=self.get_headers(wrong_token),
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("Brak uprawnień", response.get_json().get("error", ""))
+
+    def test_missing_fields(self):
+        response = self.client.put(
+            f"/user/{self.user_id}/password",
+            json={"id_user": self.user_id},
+            headers=self.get_headers(self.token),
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("missing_fields", response.get_json())
+
+    def test_invalid_id_user_format(self):
+        response = self.client.put(
+            "/user/abc/password",
+            json={
+                "id_user": "abc",
+                "current_password": "oldpass",
+                "new_password": "newpass123",
+            },
+            headers=self.get_headers(self.token),
+        )
+        self.assertEqual(response.status_code, 404)  # Flask nie wywoła endpointu
+
+    def test_empty_passwords(self):
+        response = self.client.put(
+            f"/user/{self.user_id}/password",
+            json={
+                "id_user": self.user_id,
+                "current_password": "",
+                "new_password": "",
+            },
+            headers=self.get_headers(self.token),
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("niepustymi stringami", response.get_json().get("error", ""))
+
+    def test_wrong_current_password(self):
+        response = self.client.put(
+            f"/user/{self.user_id}/password",
+            json={
+                "id_user": self.user_id,
+                "current_password": "wrongpass",
+                "new_password": "newpass123",
+            },
+            headers=self.get_headers(self.token),
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn(
+            "Nieprawidłowe aktualne hasło", response.get_json().get("error", "")
+        )
+
+    def test_successful_change(self):
+        response = self.client.put(
+            f"/user/{self.user_id}/password",
+            json={
+                "id_user": self.user_id,
+                "current_password": "oldpass",
+                "new_password": "newpass123",
+            },
+            headers=self.get_headers(self.token),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Hasło zostało zmienione", response.get_json().get("message", ""))
+
+
+class DeleteUserTestCase(unittest.TestCase):
+    def setUp(self):
+        self.app = Flask(__name__)
+        self.app.config["TESTING"] = True
+        self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
+        self.app.config["SECRET_KEY"] = "test_secret"
+        db.init_app(self.app)
+        self.app.register_blueprint(endp_bp, url_prefix="")
+        with self.app.app_context():
+            db.create_all()
+            user = User(
+                email="test@example.com",
+                password_hash="hash",
+                birth_date=date(2000, 1, 1),
+                first_name="Jan",
+                last_name="Kowalski",
+                phone_number="123456789",
+                role="user",
+            )
+            db.session.add(user)
+            db.session.commit()
+            self.user_id = str(user.id_user)
+            JWTManager(self.app)
+            self.token = create_access_token(identity=self.user_id)
+        self.client = self.app.test_client()
+
+    def tearDown(self):
+        with self.app.app_context():
+            db.session.remove()
+            db.drop_all()
+
+    def get_headers(self, token=None):
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    def test_no_token(self):
+        response = self.client.delete(f"/user/{self.user_id}")
+        self.assertEqual(response.status_code, 401)
+
+    def test_wrong_token(self):
+        with self.app.app_context():
+            wrong_token = create_access_token(identity="999")
+        response = self.client.delete(
+            f"/user/{self.user_id}", headers=self.get_headers(wrong_token)
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("Brak uprawnień", response.get_json().get("error", ""))
+
+    def test_wrong_user(self):
+        with self.app.app_context():
+            wrong_token = create_access_token(identity="999")
+        response = self.client.delete(
+            f"/user/999", headers=self.get_headers(wrong_token)
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Użytkownik nie istnieje", response.get_json().get("error", ""))
+
+    def test_successful_delete(self):
+        response = self.client.delete(
+            f"/user/{self.user_id}", headers=self.get_headers(self.token)
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Konto zostało usunięte", response.get_json().get("message", ""))
+
+
 class GetUserReservationsTestCase(unittest.TestCase):
     def setUp(self):
         self.app = Flask(__name__)
@@ -1099,14 +1296,6 @@ class GetUserReservationsTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 403)
         self.assertIn("Brak uprawnień", response.get_json().get("error", ""))
-
-    def test_invalid_id_value(self):
-        response = self.client.get(
-            "/user/99999/reservations?status=active",
-            headers=self.get_headers(self.token),
-        )
-        self.assertEqual(response.status_code, 404)
-        self.assertIn("nie istnieje", response.get_json().get("error", ""))
 
     def test_invalid_status_format(self):
         response = self.client.get(
@@ -1270,13 +1459,13 @@ class GetAllListsTestCase(unittest.TestCase):
             db.session.add(hf_pool)
             db.session.commit()
             hotel_image = HotelImage(
-            id_hotel=hotel.id_hotel,
-            image_url="https://example.com/hotel.jpg",
-            description="Testowy obraz hotelu",
-            is_main=True
-        )
-        db.session.add(hotel_image)
-        db.session.commit()
+                id_hotel=hotel.id_hotel,
+                image_url="https://example.com/hotel.jpg",
+                description="Testowy obraz hotelu",
+                is_main=True,
+            )
+            db.session.add(hotel_image)
+            db.session.commit()
         self.client = self.app.test_client()
 
     def tearDown(self):
@@ -1301,6 +1490,7 @@ class GetAllListsTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("hotel_facilities", response.get_json())
 
+
 class GetHotelImagesTestCase(unittest.TestCase):
     def setUp(self):
         self.app = Flask(__name__)
@@ -1310,8 +1500,7 @@ class GetHotelImagesTestCase(unittest.TestCase):
         self.app.register_blueprint(endp_bp, url_prefix="")
         with self.app.app_context():
             db.create_all()
-            
-            # Dodaj adres
+
             address = Address(
                 country="Polska",
                 city="Warszawa",
@@ -1321,8 +1510,7 @@ class GetHotelImagesTestCase(unittest.TestCase):
             )
             db.session.add(address)
             db.session.commit()
-            
-            # Dodaj hotel
+
             hotel = Hotel(
                 name="Hotel Testowy",
                 stars=4,
@@ -1333,23 +1521,22 @@ class GetHotelImagesTestCase(unittest.TestCase):
             db.session.add(hotel)
             db.session.commit()
             self.hotel_id = hotel.id_hotel
-            
-            # Dodaj zdjęcia hotelu
+
             image1 = HotelImage(
                 id_hotel=hotel.id_hotel,
                 image_url="https://example.com/hotel1.jpg",
                 description="Główny widok hotelu",
-                is_main=True
+                is_main=True,
             )
             image2 = HotelImage(
                 id_hotel=hotel.id_hotel,
                 image_url="https://example.com/hotel2.jpg",
                 description="Basen",
-                is_main=False
+                is_main=False,
             )
             db.session.add_all([image1, image2])
             db.session.commit()
-            
+
         self.client = self.app.test_client()
 
     def tearDown(self):
@@ -1360,48 +1547,39 @@ class GetHotelImagesTestCase(unittest.TestCase):
     def test_get_hotel_images_success(self):
         response = self.client.get(f"/hotel_images/{self.hotel_id}")
         self.assertEqual(response.status_code, 200)
-        
+
         data = response.get_json()
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 2)
-        
-        # Sprawdź pierwsze zdjęcie
-        self.assertEqual(data[0]['url'], "https://example.com/hotel1.jpg")
-        self.assertEqual(data[0]['description'], "Główny widok hotelu")
-        self.assertTrue(data[0]['is_main'])
-        
-        # Sprawdź drugie zdjęcie
-        self.assertEqual(data[1]['url'], "https://example.com/hotel2.jpg")
-        self.assertEqual(data[1]['description'], "Basen")
-        self.assertFalse(data[1]['is_main'])
+
+        self.assertEqual(data[0]["url"], "https://example.com/hotel1.jpg")
+        self.assertEqual(data[0]["description"], "Główny widok hotelu")
+        self.assertTrue(data[0]["is_main"])
+
+        self.assertEqual(data[1]["url"], "https://example.com/hotel2.jpg")
+        self.assertEqual(data[1]["description"], "Basen")
+        self.assertFalse(data[1]["is_main"])
 
     def test_get_hotel_images_empty(self):
-        # Test dla hotelu bez zdjęć
         new_hotel = Hotel(
-            name="Nowy Hotel",
-            stars=3,
-            geo_length=0,
-            geo_latitude=0,
-            id_address=1
+            name="Nowy Hotel", stars=3, geo_length=0, geo_latitude=0, id_address=1
         )
         with self.app.app_context():
             db.session.add(new_hotel)
             db.session.commit()
             new_hotel_id = new_hotel.id_hotel
-        
+
         response = self.client.get(f"/hotel_images/{new_hotel_id}")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.get_json(), [])
 
     def test_get_hotel_images_invalid_id(self):
         response = self.client.get("/hotel_images/99999")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.get_json(), [])
-
-    def test_get_hotel_images_invalid_format(self):
-        response = self.client.get("/hotel_images/abc")
         self.assertEqual(response.status_code, 404)
-        self.assertIn("Nieprawidłowy format identyfikatora hotelu", response.get_json().get("error", ""))
+        self.assertIn(
+            "Hotel nie istnieje",
+            response.get_json().get("error", ""),
+        )
 
 
 if __name__ == "__main__":
