@@ -11,12 +11,13 @@ from traceback import print_exc
 endp_bp = Blueprint("endp", __name__)
 
 
+# Wyszukiwanie wolnych pokoi według zadanych kryteriów
 @endp_bp.route("/search_free_rooms", methods=["POST"])
 def search_free_rooms():
     try:
         data = request.get_json()
 
-        # Required fields
+        # Sprawdzenie wymaganych pól wejściowych
         required_fields = ["start_date", "end_date", "guests"]
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
@@ -27,6 +28,7 @@ def search_free_rooms():
                 400,
             )
 
+        # Walidacja dat i liczby gości
         try:
             start_date = datetime.strptime(data["start_date"], "%Y-%m-%d").date()
             end_date = datetime.strptime(data["end_date"], "%Y-%m-%d").date()
@@ -52,7 +54,7 @@ def search_free_rooms():
         if guests <= 0:
             return jsonify({"error": "Liczba gości musi być większa od zera"}), 400
 
-        # Optional filters
+        # Opcjonalne filtry
         lowest_price = data.get("lowest_price", None)
         highest_price = data.get("highest_price", None)
         min_hotel_stars = data.get("min_hotel_stars", None)
@@ -131,6 +133,7 @@ def search_free_rooms():
         countries = data.get("countries", [])
         cities = data.get("city", [])
 
+        # Walidacja typów list filtrów
         if room_facilities and not (
             isinstance(room_facilities, list)
             and all(isinstance(f, str) for f in room_facilities)
@@ -196,7 +199,7 @@ def search_free_rooms():
                 400,
             )
 
-        # Build base query
+        # Budowanie zapytania SQL na podstawie filtrów
         nights = (end_date - start_date).days
         query_str = """
             SELECT r.id_room, r.capacity, r.price_per_night, h.id_hotel,h.name  AS hotel_name, a.city, a.country, h.stars
@@ -218,7 +221,7 @@ def search_free_rooms():
             )""",
         ]
 
-        # City/country logic
+        # Logika filtrów miasto/kraj
         city_country_clause = None
 
         if cities and countries:
@@ -227,7 +230,7 @@ def search_free_rooms():
             for i, city in enumerate(cities):
                 params[f"city_{i}"] = city
 
-            # Countries with selected cities
+            # Kraje powiązane z wybranymi miastami
             cities_countries = db.session.execute(
                 text(
                     f"SELECT DISTINCT country FROM addresses WHERE city IN ({city_placeholders})"
@@ -235,7 +238,7 @@ def search_free_rooms():
                 {f"city_{i}": city for i, city in enumerate(cities)},
             ).fetchall()
             countries_with_cities = {row.country for row in cities_countries}
-            # Countries with no selected cities
+            # Kraje bez wybranych miast
             countries_without_cities = [
                 c for c in countries if c not in countries_with_cities
             ]
@@ -264,7 +267,7 @@ def search_free_rooms():
         if city_country_clause:
             where_clauses.append(city_country_clause)
 
-        # Hotel stars
+        # Filtr liczby gwiazdek hotelu
         if min_hotel_stars is not None:
             where_clauses.append("h.stars >= :min_hotel_stars")
             params["min_hotel_stars"] = min_hotel_stars
@@ -272,7 +275,7 @@ def search_free_rooms():
             where_clauses.append("h.stars <= :max_hotel_stars")
             params["max_hotel_stars"] = max_hotel_stars
 
-        # Price range for the whole stay
+        # Filtr ceny
         if lowest_price is not None:
             where_clauses.append("r.price_per_night >= :lowest_price")
             params["lowest_price"] = lowest_price
@@ -282,7 +285,7 @@ def search_free_rooms():
             params["highest_price"] = highest_price
             params["nights"] = nights
 
-        # Room facilities
+        # Filtr udogodnień pokoju
         if room_facilities:
             query_str += """
                 JOIN rooms_room_facilities rrf ON rrf.id_room = r.id_room
@@ -295,7 +298,7 @@ def search_free_rooms():
             params["room_facilities"] = tuple(room_facilities)
             for i, facility in enumerate(room_facilities):
                 params[f"rf_{i}"] = facility
-            # Ensure all required facilities are present
+            # Zapewnienie obecności wszystkich wymaganych udogodnień
             group_by = " GROUP BY r.id_room, r.capacity, r.price_per_night, h.id_hotel, h.name, a.city, a.country, h.stars"
             having = (
                 f" HAVING COUNT(DISTINCT rf.facility_name) = {len(room_facilities)}"
@@ -304,7 +307,7 @@ def search_free_rooms():
             group_by = ""
             having = ""
 
-        # Hotel facilities
+        # Filtr udogodnień hotelu
         if hotel_facilities:
             query_str += """
                 JOIN hotels_hotel_facilities hhf ON hhf.id_hotel = h.id_hotel
@@ -316,7 +319,7 @@ def search_free_rooms():
             where_clauses.append(f"hf.facility_name IN ({hf_placeholders})")
             for i, facility in enumerate(hotel_facilities):
                 params[f"hf_{i}"] = facility
-            # Ensure all required hotel facilities are present
+            # Zapewnienie obecności wszystkich wymaganych udogodnień hotelowych
             if group_by == "":
                 group_by = " GROUP BY r.id_room, r.capacity, r.price_per_night, h.id_hotel, h.name, a.city, a.country, h.stars"
             having += (
@@ -325,13 +328,13 @@ def search_free_rooms():
                 else f" HAVING COUNT(DISTINCT hf.facility_name) = {len(hotel_facilities)}"
             )
 
-        # Finalize query
+        # Finalizacja zapytania SQL
         if where_clauses:
             query_str += " WHERE " + " AND ".join(where_clauses)
         query_str += group_by
         query_str += having
 
-        # Sort results
+        # Sortowanie wyników
         sort_columns = {"price": "r.price_per_night", "stars": "h.stars"}
         if sort_by:
             order = sort_order if sort_order else "asc"
@@ -373,12 +376,15 @@ def search_free_rooms():
             500,
         )
 
+
+# Tworzenie nowej rezerwacji
 @endp_bp.route("/post_reservation", methods=["POST"])
 @jwt_required()
 def post_reservation():
     try:
         data = request.get_json()
 
+        # Sprawdzenie obecności wymaganych pól
         required_fields = [
             "id_room",
             "id_user",
@@ -387,7 +393,6 @@ def post_reservation():
             "full_name",
             "bill_type",
         ]
-
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             return (
@@ -397,6 +402,7 @@ def post_reservation():
                 400,
             )
 
+        # Walidacja typów identyfikatorów
         try:
             id_room = int(data["id_room"])
             id_user = int(data["id_user"])
@@ -412,6 +418,7 @@ def post_reservation():
 
         full_name = data["full_name"]
 
+        # Walidacja imienia i nazwiska
         if not isinstance(full_name, str) or not full_name.strip():
             return (
                 jsonify({"error": "Imię i nazwisko musi być niepustym stringiem"}),
@@ -420,6 +427,7 @@ def post_reservation():
 
         bill_type = data["bill_type"]
 
+        # Walidacja typu rachunku
         if not isinstance(bill_type, str) or bill_type not in ("I", "R"):
             return (
                 jsonify(
@@ -430,10 +438,12 @@ def post_reservation():
                 400,
             )
 
+        # Sprawdzenie czy użytkownik jest zgodny z tokenem JWT
         current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
             return jsonify({"error": "Brak uprawnień do dokonania tej rezerwacji"}), 403
 
+        # Walidacja dat pobytu
         try:
             first_night = datetime.strptime(data["first_night"], "%Y-%m-%d").date()
             last_night = datetime.strptime(data["last_night"], "%Y-%m-%d").date()
@@ -453,6 +463,7 @@ def post_reservation():
                 400,
             )
 
+        # Sprawdzenie czy pokój istnieje
         room = Room.query.get(id_room)
         if not room:
             return jsonify({"error": "Pokój nie istnieje"}), 404
@@ -460,7 +471,7 @@ def post_reservation():
         nights = (last_night - first_night).days
         total_price = float(room.price_per_night) * nights
 
-        # Check if room is available in given time period
+        # Sprawdzenie dostępności pokoju w wybranym terminie
         query = db.session.execute(
             text(
                 """
@@ -484,7 +495,7 @@ def post_reservation():
                 400,
             )
 
-        # Create new reservation
+        # Utworzenie nowej rezerwacji
         new_reservation = Reservation(
             id_room=id_room,
             id_user=id_user,
@@ -500,15 +511,17 @@ def post_reservation():
         db.session.add(new_reservation)
         db.session.commit()
 
+        # Pobranie danych do wysyłki maila
         user = User.query.get(new_reservation.id_user)
         hotel = Hotel.query.get(room.id_hotel)
         address = Address.query.get(hotel.id_address)
 
+        # Wysłanie maila potwierdzającego rezerwację
         send_email(
             get_confirmation_email(
                 user=user, reservation=new_reservation, hotel=hotel, address=address
             )
-         )
+        )
 
         return jsonify({"message": "Rezerwacja została pomyślnie utworzona"}), 201
 
@@ -525,12 +538,14 @@ def post_reservation():
         )
 
 
+# Anulowanie rezerwacji
 @endp_bp.route("/post_cancellation", methods=["POST"])
 @jwt_required()
 def post_cancellation():
     try:
         data = request.get_json()
 
+        # Sprawdzenie obecności wymaganych pól
         required_fields = ["id_reservation", "id_user"]
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
@@ -541,6 +556,7 @@ def post_cancellation():
                 400,
             )
 
+        # Walidacja typu identyfikatora użytkownika
         try:
             id_user = int(data["id_user"])
         except ValueError:
@@ -553,29 +569,33 @@ def post_cancellation():
                 400,
             )
 
+        # Sprawdzenie czy użytkownik jest zgodny z tokenem JWT
         current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
             return (
-                jsonify({"error": "Brak uprawnień do anulowania tej rezerwacji"}), 403
+                jsonify({"error": "Brak uprawnień do anulowania tej rezerwacji"}),
+                403,
             )
 
+        # Pobranie rezerwacji do anulowania
         reservation = Reservation.query.filter_by(
             id_reservation=data["id_reservation"]
         ).first()
         if not reservation:
-            return (
-                jsonify({"error": "Wskazana rezerwacja nie istnieje"}), 404
-            )
+            return (jsonify({"error": "Wskazana rezerwacja nie istnieje"}), 404)
+        # Ustawienie statusu rezerwacji na anulowaną
         reservation.reservation_status = "C"
         db.session.commit()
 
+        # Pobranie danych do wysyłki maila anulacyjnego
         user = User.query.get(reservation.id_user)
         room = Room.query.get(reservation.id_room)
         hotel = Hotel.query.get(room.id_hotel)
 
-        # send_email(
-        #     get_cancellation_email(user=user, reservation=reservation, hotel=hotel)
-        # )
+        # Wysłanie maila potwierdzającego anulowanie rezerwacji
+        send_email(
+            get_cancellation_email(user=user, reservation=reservation, hotel=hotel)
+        )
 
         return jsonify({"message": "Rezerwacja została pomyślnie anulowana"}), 201
 
@@ -592,9 +612,11 @@ def post_cancellation():
         )
 
 
+# Pobieranie danych użytkownika
 @endp_bp.route("/user/<int:id_user>", methods=["GET"])
 @jwt_required()
 def get_user(id_user):
+    # Sprawdzenie poprawności typu identyfikatora użytkownika
     if not isinstance(id_user, int):
         return (
             jsonify(
@@ -604,14 +626,17 @@ def get_user(id_user):
             ),
             400,
         )
+    # Pobranie użytkownika z bazy
     user = User.query.get(id_user)
     if not user:
         return jsonify({"error": "Użytkownik nie istnieje"}), 404
 
+    # Sprawdzenie uprawnień (czy użytkownik pobiera swoje dane)
     current_user_id = int(get_jwt_identity())
     if id_user != current_user_id:
         return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
 
+    # Zwrócenie danych użytkownika
     user_data = {
         "id_user": user.id_user,
         "email": user.email,
@@ -623,12 +648,14 @@ def get_user(id_user):
     return jsonify(user_data), 200
 
 
+# Zmiana hasła użytkownika
 @endp_bp.route("/user/<int:id_user>/password", methods=["PUT"])
 @jwt_required()
 def change_password(id_user):
     try:
         data = request.get_json()
 
+        # Sprawdzenie obecności wymaganych pól
         required_fields = ["id_user", "current_password", "new_password"]
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
@@ -639,6 +666,7 @@ def change_password(id_user):
                 400,
             )
 
+        # Sprawdzenie poprawności typu identyfikatora użytkownika
         if not isinstance(id_user, int):
             return (
                 jsonify(
@@ -649,12 +677,14 @@ def change_password(id_user):
                 400,
             )
 
+        # Sprawdzenie uprawnień (czy użytkownik zmienia swoje hasło)
         current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
             return jsonify({"error": "Brak uprawnień do zmiany hasła"}), 403
 
         current_password = data["current_password"]
         new_password = data["new_password"]
+        # Walidacja hasła (czy nie są puste)
         if (
             not isinstance(current_password, str)
             or not current_password.strip()
@@ -670,9 +700,11 @@ def change_password(id_user):
 
         user = User.query.get(id_user)
 
+        # Sprawdzenie poprawności aktualnego hasła
         if not check_password_hash(user.password_hash, current_password):
             return jsonify({"error": "Nieprawidłowe aktualne hasło"}), 400
 
+        # Ustawienie nowego hasła
         user.password_hash = generate_password_hash(new_password)
         db.session.commit()
         return jsonify({"message": "Hasło zostało zmienione"}), 200
@@ -691,26 +723,32 @@ def change_password(id_user):
         )
 
 
+# Usuwanie konta użytkownika
 @endp_bp.route("/user/<int:id_user>", methods=["DELETE"])
 @jwt_required()
 def delete_user(id_user):
+    # Sprawdzenie uprawnień (czy użytkownik usuwa swoje konto)
     current_user_id = int(get_jwt_identity())
     if id_user != current_user_id:
         return jsonify({"error": "Brak uprawnień do usunięcia konta"}), 403
 
+    # Pobranie użytkownika z bazy
     user = User.query.get(id_user)
     if not user:
         return jsonify({"error": "Użytkownik nie istnieje"}), 404
 
+    # Usunięcie użytkownika
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "Konto zostało usunięte"}), 200
 
 
+# Pobieranie rezerwacji użytkownika
 @endp_bp.route("/user/<int:id_user>/reservations", methods=["GET"])
 @jwt_required()
 def get_user_reservations(id_user):
 
+    # Sprawdzenie poprawności typu identyfikatora użytkownika
     if not isinstance(id_user, int):
         return (
             jsonify(
@@ -721,10 +759,12 @@ def get_user_reservations(id_user):
             400,
         )
 
+    # Sprawdzenie uprawnień (czy użytkownik pobiera swoje rezerwacje)
     current_user_id = int(get_jwt_identity())
     if id_user != current_user_id:
         return jsonify({"error": "Brak uprawnień do przeglądania tych danych"}), 403
 
+    # Pobranie statusu rezerwacji z query stringa
     status_arg = request.args.get("status")
 
     if status_arg not in {"active", "cancelled"}:
@@ -737,6 +777,7 @@ def get_user_reservations(id_user):
             400,
         )
 
+    # Ustalenie statusu rezerwacji do pobrania
     match status_arg:
         case "active":
             status_string = "aktywnych"
@@ -745,6 +786,7 @@ def get_user_reservations(id_user):
             status_string = "anulowanych"
             status = "C"
 
+    # Pobranie rezerwacji z bazy
     query = Reservation.query.filter_by(id_user=id_user, reservation_status=status)
     reservations = query.all()
 
@@ -761,7 +803,7 @@ def get_user_reservations(id_user):
         room = Room.query.get(res.id_room)
         hotel = Hotel.query.get(room.id_hotel)
 
-        # Room facilities
+        # Pobranie udogodnień pokoju
         room_facilities = (
             db.session.query(RoomFacility.facility_name)
             .join(
@@ -773,7 +815,7 @@ def get_user_reservations(id_user):
         )
         room_facilities = [f.facility_name for f in room_facilities]
 
-        # Hotel facilities
+        # Pobranie udogodnień hotelu
         hotel_facilities = (
             db.session.query(HotelFacility.facility_name)
             .join(
@@ -815,9 +857,11 @@ def get_user_reservations(id_user):
     return jsonify({"reservations": result}), 200
 
 
+# Pobieranie hotelu po id
 @endp_bp.route("/hotel/<int:id_hotel>", methods=["GET"])
 def get_hotel(id_hotel):
 
+    # Sprawdzenie poprawności typu identyfikatora hotelu
     if not isinstance(id_hotel, int):
         return (
             jsonify(
@@ -828,12 +872,14 @@ def get_hotel(id_hotel):
             400,
         )
 
+    # Pobranie hotelu z bazy
     hotel = Hotel.query.get(id_hotel)
     if not hotel:
         return jsonify({"error": "Hotel nie istnieje"}), 404
 
     address = Address.query.get(hotel.id_address)
 
+    # Pobranie udogodnień hotelu
     facilities = (
         db.session.query(HotelFacility.facility_name)
         .join(
@@ -863,9 +909,11 @@ def get_hotel(id_hotel):
     return jsonify(hotel_data), 200
 
 
+# Pobieranie pokoju po id
 @endp_bp.route("/room/<int:id_room>", methods=["GET"])
 def get_room(id_room):
 
+    # Sprawdzenie poprawności typu identyfikatora pokoju
     if not isinstance(id_room, int):
         return (
             jsonify(
@@ -876,10 +924,12 @@ def get_room(id_room):
             400,
         )
 
+    # Pobranie pokoju z bazy
     room = Room.query.get(id_room)
     if not room:
         return jsonify({"error": "Pokój nie istnieje"}), 404
 
+    # Pobranie udogodnień pokoju
     facilities = (
         db.session.query(RoomFacility.facility_name)
         .join(
@@ -901,6 +951,7 @@ def get_room(id_room):
     return jsonify(room_data), 200
 
 
+# Pobieranie listy krajów
 @endp_bp.route("/countries", methods=["GET"])
 def get_all_countries():
     countries = db.session.query(Address.country).distinct().all()
@@ -908,6 +959,7 @@ def get_all_countries():
     return jsonify({"countries": countries_list}), 200
 
 
+# Pobieranie listy miast (opcjonalnie z filtrem po kraju)
 @endp_bp.route("/cities", methods=["GET"])
 def get_all_cities():
     country = request.args.get("country")
@@ -919,6 +971,7 @@ def get_all_cities():
     return jsonify({"cities": cities_list}), 200
 
 
+# Pobieranie listy udogodnień pokoi
 @endp_bp.route("/room_facilities", methods=["GET"])
 def get_all_room_facilities():
     facilities = db.session.query(RoomFacility.facility_name).all()
@@ -926,6 +979,7 @@ def get_all_room_facilities():
     return jsonify({"room_facilities": facilities_list}), 200
 
 
+# Pobieranie listy udogodnień hoteli
 @endp_bp.route("/hotel_facilities", methods=["GET"])
 def get_all_hotel_facilities():
     facilities = db.session.query(HotelFacility.facility_name).all()
@@ -933,9 +987,11 @@ def get_all_hotel_facilities():
     return jsonify({"hotel_facilities": facilities_list}), 200
 
 
+# Pobieranie zdjęć hotelu po id hotelu
 @endp_bp.route("/hotel_images/<int:id_hotel>", methods=["GET"])
 def get_hotel_images(id_hotel):
 
+    # Sprawdzenie poprawności typu identyfikatora hotelu
     if not isinstance(id_hotel, int):
         return (
             jsonify(
@@ -946,10 +1002,12 @@ def get_hotel_images(id_hotel):
             400,
         )
 
+    # Pobranie hotelu z bazy
     hotel = Hotel.query.get(id_hotel)
     if not hotel:
         return jsonify({"error": "Hotel nie istnieje"}), 404
 
+    # Pobranie zdjęć hotelu
     images = HotelImage.query.filter_by(id_hotel=id_hotel).all()
     return jsonify(
         [

@@ -9,36 +9,41 @@ from config import JWT_SECRET_KEY, SECRET_KEY, SQLALCHEMY_DATABASE_URI_ENV
 
 
 def create_app(test_config=None):
-    # create and configure the app
+    # Tworzy i konfiguruje aplikację Flask
     app = Flask(__name__, instance_relative_config=True)
-    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}}, supports_credentials=True)
-    # Konfiguracja domyślna
+    CORS(
+        app,
+        resources={r"/*": {"origins": "http://localhost:3000"}},
+        supports_credentials=True,
+    )
+
+    # Konfiguracja podstawowa aplikacji
     app.config.from_mapping(
         SECRET_KEY=SECRET_KEY,
         SQLALCHEMY_DATABASE_URI=SQLALCHEMY_DATABASE_URI_ENV,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
     )
-    app.config["JWT_SECRET_KEY"] = (JWT_SECRET_KEY)
-    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Ważność tokenu
+    app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)  # Ważność tokenu JWT
 
     if test_config is None:
-        # load the instance config, if it exists, when not testing
+        # Ładowanie konfiguracji z pliku (jeśli istnieje)
         app.config.from_pyfile("config.py", silent=True)
     else:
-        # load the test config if passed in
+        # Konfiguracja testowa
         app.config.from_mapping(test_config)
 
-    # ensure the instance folder exists
+    # Tworzenie folderu instance (jeśli nie istnieje)
     try:
         os.makedirs(app.instance_path)
     except OSError:
         pass
 
-    # Initialize extensions
+    # Inicjalizacja rozszerzeń
     jwt = JWTManager(app)
     db.init_app(app)
 
-    # Register blueprints
+    # Rejestracja blueprintów
     from flaskr.authorization import auth_bp
 
     app.register_blueprint(auth_bp)
@@ -47,7 +52,7 @@ def create_app(test_config=None):
 
     app.register_blueprint(endp_bp)
 
-    # Routes
+    # Prosta trasa testowa sprawdzająca połączenie z bazą danych
     @app.route("/")
     def home():
         try:
@@ -56,6 +61,7 @@ def create_app(test_config=None):
         except Exception as e:
             return f"Nie udało się połączyć z bazą danych: {e}"
 
+    # Trasa testowa do pobrania użytkowników z bazy
     @app.route("/test_db")
     def test_db():
         try:
@@ -70,10 +76,13 @@ def create_app(test_config=None):
     def hello():
         return "Hello, World!"
 
-    # JWT error handlers
+    # Obsługa błędów JWT
     @jwt.unauthorized_loader
     def unauthorized_callback(reason):
-        return jsonify({"error": "Brak lub nieprawidłowy token JWT", "details": reason}), 401
+        return (
+            jsonify({"error": "Brak lub nieprawidłowy token JWT", "details": reason}),
+            401,
+        )
 
     @jwt.invalid_token_loader
     def invalid_token_callback(reason):
@@ -86,7 +95,7 @@ def create_app(test_config=None):
     return app
 
 
-# Create app instance
+# Tworzenie instancji aplikacji
 app = create_app()
 
 if __name__ == "__main__":

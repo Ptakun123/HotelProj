@@ -13,21 +13,21 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flaskr.models import Reservation, User, Hotel, Address
 
-
+# Kontekst SSL do bezpiecznego połączenia SMTP
 context = ssl.create_default_context()
 
 
 def send_email(email: dict):
-    # Create a MIME message
+    # Tworzenie wiadomości MIME
     message = MIMEMultipart()
     message["From"] = FROM_EMAIL
     message["To"] = email["receiver_email"]
     message["Subject"] = email["subject"]
 
-    # Add the email body
+    # Dodanie treści wiadomości
     message.attach(MIMEText(email["body"], "plain"))
 
-    # Send the email
+    # Wysyłka wiadomości przez SMTP z użyciem SSL
     with SMTP_SSL(SMTP_SERVER, SMTP_PORT, context) as server:
         server.login(SMTP_USERNAME, SMTP_PASSWORD)
         server.sendmail(FROM_EMAIL, email["receiver_email"], message.as_string())
@@ -36,6 +36,7 @@ def send_email(email: dict):
 def get_confirmation_email(
     user: User, reservation: Reservation, hotel: Hotel, address: Address
 ) -> dict:
+    # Generuje treść maila potwierdzającego rezerwację
     receiver_email = user.email
     subject = f"Potwierdzenie rezerwacji hotelowej w obiekcie {hotel.name}"
     body = (
@@ -60,6 +61,7 @@ def get_confirmation_email(
 
 
 def get_cancellation_email(user: User, reservation: Reservation, hotel: Hotel) -> dict:
+    # Generuje treść maila potwierdzającego anulowanie rezerwacji
     receiver_email = user.email
     subject = f"Potwierdzenie anulowania rezerwacji hotelowej w obiekcie {hotel.name}"
     body = (
@@ -76,6 +78,7 @@ def get_cancellation_email(user: User, reservation: Reservation, hotel: Hotel) -
 
 
 def generate_invoice_attachment(reservation: Reservation, user: User) -> MIMEBase:
+    # Generuje załącznik z fakturą lub paragonem na podstawie danych rezerwacji
     if reservation.bill_type == "F":
         doc_type = "Faktura VAT"
         filename = f"faktura_{reservation.id_reservation}.txt"
