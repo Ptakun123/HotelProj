@@ -1,5 +1,7 @@
 package com.example.aplikacja;
 
+// Adapter do wyświetlania listy pokoi hotelowych w RecyclerView.
+// Pozwala na obsługę kliknięcia w pojedynczy pokój.
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,7 +17,9 @@ import java.util.List;
 
 public class RoomAdapter extends RecyclerView.Adapter<RoomAdapter.RoomViewHolder> {
 
+    // Lista pokoi do wyświetlenia
     private List<Room> roomList;
+    // Listener do obsługi kliknięcia w pokój
     private OnItemClickListener listener;
 
     // Interfejs do obsługi kliknięcia
@@ -29,6 +33,7 @@ public class RoomAdapter extends RecyclerView.Adapter<RoomAdapter.RoomViewHolder
         this.listener = listener;
     }
 
+    // ViewHolder przechowujący referencje do widoków pojedynczego pokoju
     public static class RoomViewHolder extends RecyclerView.ViewHolder {
         TextView hotelName, hotelLocation, roomCapacity, price, price_per_night;
         ImageView roomImage;
@@ -56,12 +61,14 @@ public class RoomAdapter extends RecyclerView.Adapter<RoomAdapter.RoomViewHolder
     @NonNull
     @Override
     public RoomViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Tworzy widok pojedynczego pokoju
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_room, parent, false);
         return new RoomViewHolder(v);
     }
 
     @Override
     public void onBindViewHolder(@NonNull RoomViewHolder holder, int position) {
+        // Przypisuje dane pokoju do widoku
         Room room = roomList.get(position);
 
         holder.hotelName.setText(room.hotel_name + " ★" + room.hotel_stars);
@@ -78,6 +85,7 @@ public class RoomAdapter extends RecyclerView.Adapter<RoomAdapter.RoomViewHolder
 
     @Override
     public int getItemCount() {
+        // Zwraca liczbę pokoi
         return roomList.size();
     }
 }

@@ -1,5 +1,7 @@
 package com.example.aplikacja;
 
+// Aktywność wyświetlająca szczegóły wybranej oferty pokoju hotelowego.
+// Pozwala na rezerwację pokoju oraz wyświetla lokalizację hotelu na mapie.
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -33,11 +35,12 @@ import okhttp3.Response;
 
 public class SingleOfferActivity extends AppCompatActivity implements OnMapReadyCallback {
 
+    // Dane pokoju i użytkownika przekazane przez Intent
     private Room room;
     private UserAndTokens user;
     String stardDate, endDate;
+    // Obiekt mapy Google
     private GoogleMap mMap;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +53,7 @@ public class SingleOfferActivity extends AppCompatActivity implements OnMapReady
         user = intent.getParcelableExtra("User_info");
         stardDate = intent.getStringExtra("Start_date");
         endDate = intent.getStringExtra("End_date");
+
         // Znajdź widoki
         TextView tvHotelName = findViewById(R.id.tvHotelName);
         TextView tvLocation = findViewById(R.id.tvLocation);
@@ -62,6 +66,8 @@ public class SingleOfferActivity extends AppCompatActivity implements OnMapReady
         EditText etFullName = findViewById(R.id.etFullName);
         CheckBox cbInvoice = findViewById(R.id.cbInvoice);
         EditText etNip = findViewById(R.id.etNip);
+
+        // Obsługa widoczności pola NIP w zależności od wyboru faktury
         cbInvoice.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if(isChecked)
                 etNip.setVisibility(ViewPager2.VISIBLE);
@@ -70,14 +76,15 @@ public class SingleOfferActivity extends AppCompatActivity implements OnMapReady
                 etNip.setText(""); // opcjonalnie czyści pole NIP
             }
         });
+
+        // Inicjalizacja mapy Google
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.mapFragment);
         if (mapFragment != null) {
             mapFragment.getMapAsync(this);
         }
 
-
-        // Wypełnij widoki danymi
+        // Wypełnij widoki danymi pokoju i hotelu
         if (room != null) {
             tvHotelName.setText(room.hotel_name);
             tvLocation.setText(room.city + ", " + room.country);
@@ -87,12 +94,15 @@ public class SingleOfferActivity extends AppCompatActivity implements OnMapReady
             tvTotalPrice.setText("Cena całkowita: " + room.total_price + " zł");
             tvStayDates.setText("Od: " + stardDate+" Do: "+endDate);
         }
-        ViewPager2 viewPager = findViewById(R.id.viewPagerImages);
 
+        // Ustaw adapter do wyświetlania zdjęć pokoju
+        ViewPager2 viewPager = findViewById(R.id.viewPagerImages);
         if (room != null && room.imageURLs != null && !room.imageURLs.isEmpty()) {
             ImagePagerAdapter adapter = new ImagePagerAdapter(this, room.imageURLs);
             viewPager.setAdapter(adapter);
         }
+
+        // Obsługa przycisku rezerwacji
         btnReserve.setOnClickListener(v -> {
             String fullName = etFullName.getText().toString().trim();
             boolean wantsInvoice = cbInvoice.isChecked();
@@ -103,6 +113,7 @@ public class SingleOfferActivity extends AppCompatActivity implements OnMapReady
                 return;
             }
 
+            // Przygotowanie danych rezerwacji do wysłania
             JSONObject reservationJson = new JSONObject();
             try {
                 reservationJson.put("id_room", room.id_room);
@@ -121,15 +132,17 @@ public class SingleOfferActivity extends AppCompatActivity implements OnMapReady
                 return;
             }
 
+            // Wyślij żądanie rezerwacji do backendu
             sendReservationRequest(reservationJson.toString(), user.access_token);
         });
     }
+
+    // Wysyła żądanie rezerwacji do backendu
     private void sendReservationRequest(String jsonBody, String jwtToken) {
         OkHttpClient client = new OkHttpClient();
 
         MediaType JSON = MediaType.get("application/json; charset=utf-8");
         RequestBody body = RequestBody.create(jsonBody, JSON);
-
 
         Request request = new Request.Builder()
                 .url("http://10.0.2.2:5000/post_reservation") // Zmień na właściwy URL
@@ -162,6 +175,8 @@ public class SingleOfferActivity extends AppCompatActivity implements OnMapReady
             }
         });
     }
+
+    // Callback po przygotowaniu mapy Google
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
@@ -170,6 +185,7 @@ public class SingleOfferActivity extends AppCompatActivity implements OnMapReady
         }
     }
 
+    // Pobiera lokalizację hotelu z backendu i ustawia marker na mapie
     private void fetchHotelLocation(int hotelId) {
         OkHttpClient client = new OkHttpClient();
         String url = "http://10.0.2.2:5000/hotel/" + hotelId;

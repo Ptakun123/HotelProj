@@ -1,5 +1,6 @@
 package com.example.aplikacja;
 
+// Model pokoju hotelowego, implementuje Parcelable do przekazywania między aktywnościami.
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -7,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Room implements Parcelable {
+    // Podstawowe dane pokoju i hotelu
     public int capacity;
     public String city;
     public String country;
@@ -17,13 +19,14 @@ public class Room implements Parcelable {
     public double price_per_night;
     public ArrayList<String> imageURLs;
     public double total_price;
+    // Lista udogodnień pokoju
     private List<String> facilities;
 
-    // Constructor
+    // Konstruktor domyślny
     public Room() {
     }
 
-    // Parcelable constructor
+    // Konstruktor do odczytu z Parcel (Parcelable)
     protected Room(Parcel in) {
         capacity = in.readInt();
         city = in.readString();
@@ -56,6 +59,7 @@ public class Room implements Parcelable {
         return 0;
     }
 
+    // Parcelable CREATOR
     public static final Creator<Room> CREATOR = new Creator<Room>() {
         @Override
         public Room createFromParcel(Parcel in) {
@@ -67,6 +71,8 @@ public class Room implements Parcelable {
             return new Room[size];
         }
     };
+
+    // Gettery do pól modelu
     public int getIdRoom() {
         return id_room;
     }

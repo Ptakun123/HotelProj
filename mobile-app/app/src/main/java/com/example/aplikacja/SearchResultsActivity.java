@@ -1,5 +1,7 @@
 package com.example.aplikacja;
 
+// Aktywność wyświetlająca wyniki wyszukiwania pokoi na podstawie filtrów przekazanych przez Intent.
+// Pobiera dane z backendu, pobiera zdjęcia hoteli i przekazuje wybrany pokój do szczegółów oferty.
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
@@ -34,13 +36,21 @@ import okhttp3.Response;
 
 public class SearchResultsActivity extends AppCompatActivity {
 
+    // RecyclerView do prezentacji listy pokoi
     private RecyclerView recyclerView;
+    // Adapter do obsługi listy pokoi
     private RoomAdapter adapter;
+    // Klient HTTP do komunikacji z backendem
     private final OkHttpClient client = new OkHttpClient();
+    // Mapper do obsługi JSON
     private final ObjectMapper mapper = new ObjectMapper();
+    // Przechowywane daty pobytu
     String startDate, endDate;
+    // Dane użytkownika przekazane z poprzedniej aktywności
     private UserAndTokens userAndTokens;
+    // Lista pokoi do wyświetlenia
     List<Room> roomsList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,6 +118,7 @@ public class SearchResultsActivity extends AppCompatActivity {
 
         json.put("room_facilities", roomFacilities != null ? roomFacilities : new ArrayList<>());
         json.put("hotel_facilities", hotelFacilities != null ? hotelFacilities : new ArrayList<>());
+        // Przygotowanie zapytania do backendu
         String jsonStr;
         try {
             jsonStr = mapper.writeValueAsString(json);
@@ -121,7 +132,7 @@ public class SearchResultsActivity extends AppCompatActivity {
                 .post(body)
                 .build();
 
-        // Wyślij zapytanie
+        // Wyślij zapytanie o dostępne pokoje
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
@@ -138,12 +149,14 @@ public class SearchResultsActivity extends AppCompatActivity {
                     });
                     return;
                 } else {
+                    // Odbierz i sparsuj listę pokoi
                     String jsonResponse = response.body().string();
 
                     JsonNode rootNode = mapper.readTree(jsonResponse);
                     JsonNode roomsNode = rootNode.get("available_rooms");
                     Room[] roomsArray = mapper.treeToValue(roomsNode, Room[].class);
                     roomsList = Arrays.asList(roomsArray);
+                    // Dla każdego pokoju pobierz zdjęcia hotelu
                     for (int i = 0; i < roomsList.size(); ++i) {
                         roomsList.get(i).imageURLs = new ArrayList<>();
                         String hotel_id = roomsList.get(i).hotel_id;
@@ -172,9 +185,11 @@ public class SearchResultsActivity extends AppCompatActivity {
                                         roomsList.get(finalI).imageURLs.add(fixedUrl);
                                     }
                                 }
+                                // Po pobraniu zdjęć do ostatniego pokoju ustaw adapter
                                 if(finalI == roomsList.size()-1){
                                     runOnUiThread(() -> {
                                         adapter = new RoomAdapter(roomsList, room -> {
+                                            // Obsługa kliknięcia w pokój - przejście do szczegółów oferty
                                             Intent intent = new Intent(SearchResultsActivity.this, SingleOfferActivity.class);
                                             intent.putExtra("Room_info", room);
                                             intent.putExtra("User_info", userAndTokens);
