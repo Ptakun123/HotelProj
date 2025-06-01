@@ -1,55 +1,188 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../components/layout/PageLayout';
 import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 import api from '../api/api';
 import RoomCard from '../components/RoomCard';
+import ImageGallery from 'react-image-gallery';
+import 'react-image-gallery/styles/css/image-gallery.css';
 
 export default function RoomDetailPage() {
-  const { id_room } = useParams();
+  const { id } = useParams();
+  const navigate = useNavigate();
+
   const [room, setRoom] = useState(null);
   const [hotel, setHotel] = useState(null);
+  const [images, setImages] = useState([]);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // MODAL
+  const [showModal, setShowModal] = useState(false);
+  const [billType, setBillType] = useState('individual');
+  const [nip, setNip] = useState('');
 
   useEffect(() => {
-    async function fetchData() {
+    (async () => {
       try {
-        const { data: roomData } = await api.get(`/room/${id_room}`);
+        const { data: roomData } = await api.get(`/room/${id}`);
         setRoom(roomData);
+
         const { data: hotelData } = await api.get(`/hotel/${roomData.id_hotel}`);
         setHotel(hotelData);
-      } catch (err) {
-        setError('Nie udało się pobrać szczegółów pokoju lub hotelu');
-      }
-    }
-    fetchData();
-  }, [id_room]);
 
+        const { data: imgs = [] } = await api.get(`/hotel_images/${roomData.id_hotel}`);
+        setImages(
+          imgs.map(img => ({
+            original: img.url,
+            thumbnail: img.url
+          }))
+        );
+      } catch (err) {
+        console.error(err);
+        setError('Nie udało się pobrać szczegółów pokoju lub hotelu');
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]);
+
+  const handleMakeReservation = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user) {
+        alert('Musisz być zalogowany, aby zarezerwować pokój.');
+        return;
+      }
+      if (billType === 'company' && (!nip || nip.length < 10)) {
+        alert('Podaj poprawny NIP do faktury.');
+        return;
+      }
+
+      await api.post('/post_reservation', {
+        id_room: room.id_room,
+        id_user: user.id_user,
+        first_night: new Date().toISOString().slice(0, 10),
+        last_night: new Date(Date.now() + 864e5).toISOString().slice(0, 10),
+        full_name: `${user.first_name} ${user.last_name}`,
+        bill_type: billType === 'company' ? 'I' : 'R',
+        nip: billType === 'company' ? nip : undefined
+      });
+      setShowModal(false);
+      navigate('/my-reservations');
+    } catch (e) {
+      console.error(e);
+      alert('Nie udało się zarezerwować pokoju');
+    }
+  };
+
+  if (loading) return <PageLayout><p>Ładowanie…</p></PageLayout>;
   if (error) return <PageLayout><p className="text-red-600">{error}</p></PageLayout>;
-  if (!room || !hotel) return <PageLayout><p>Ładowanie...</p></PageLayout>;
+  if (!room || !hotel) return <PageLayout><p className="text-center py-10">Brak danych pokoju lub hotelu.</p></PageLayout>;
 
   const hotelAddress = `${hotel.address.street} ${hotel.address.building}, ${hotel.address.city}, ${hotel.address.country}`;
-  const latitude = hotel.geo_latitude;
-  const longitude = hotel.geo_length;
+  const { geo_latitude: lat, geo_length: lng } = hotel;
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
 
   return (
     <PageLayout>
       <div className="max-w-3xl mx-auto py-10 px-2 sm:px-6 space-y-8">
-        <h1 className="text-3xl font-bold text-primary mb-4">{hotel.name} – Pokój {id_room}</h1>
+        <h1 className="text-3xl font-bold text-primary mb-4">
+          {hotel.name} – Pokój {room.id_room}
+        </h1>
+
+        {/* GALERIA ZDJĘĆ */}
+        {images.length > 0 && (
+          <Card className="p-4 bg-white/90 shadow-xl rounded-2xl border border-gray-100">
+            <ImageGallery items={images} showPlayButton={false} showFullscreenButton />
+          </Card>
+        )}
+
+        {/* SZCZEGÓŁY */}
         <Card className="p-6 bg-white/90 shadow-xl rounded-2xl border border-gray-100">
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Możesz dodać obsługę obrazka jeśli masz */}
-            <div className="flex-1 space-y-3">
-              <p><strong>Adres hotelu:</strong> {hotelAddress}</p>
-              <p><strong>Cena za noc:</strong> {room.price_per_night} zł</p>
-              <p><strong>Udogodnienia pokoju:</strong> {room.facilities?.join(', ') || 'Brak'}</p>
-              <p><strong>Udogodnienia hotelu:</strong> {hotel.facilities?.join(', ') || 'Brak'}</p>
-            </div>
+          <div className="space-y-3">
+            <p><strong>Adres hotelu:</strong> {hotelAddress}</p>
+            <p><strong>Cena za noc:</strong> {room.price_per_night} zł</p>
+            <p><strong>Pojemność pokoju:</strong> {room.capacity} os.</p>
+            <p><strong>Udogodnienia pokoju:</strong> {room.facilities?.join(', ') || 'Brak'}</p>
+            <p><strong>Udogodnienia hotelu:</strong> {hotel.facilities?.join(', ') || 'Brak'}</p>
           </div>
         </Card>
+
+        {/* WYŚRODKOWANY PRZYCISK ZAREZERWUJ */}
+        <div className="flex justify-center">
+          <Button
+            onClick={() => setShowModal(true)}
+            variant="primary"
+            className="w-full md:w-auto px-10 py-4 text-lg rounded-2xl shadow-lg bg-primary text-white hover:bg-primary/90 transition font-semibold"
+          >
+            Zarezerwuj
+          </Button>
+        </div>
+
+        {/* MODAL POTWIERDZENIA REZERWACJI */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative">
+              <button
+                className="absolute top-2 right-4 text-2xl text-gray-400 hover:text-gray-700"
+                onClick={() => setShowModal(false)}
+                aria-label="Zamknij"
+              >×</button>
+              <h2 className="text-xl font-bold mb-4 text-primary">Potwierdź rezerwację</h2>
+              <div className="space-y-3 mb-4">
+                <p><strong>Data pobytu:</strong> {today} – {tomorrow}</p>
+                <p><strong>Cena za noc:</strong> {room.price_per_night} zł</p>
+              </div>
+              <div className="flex items-center gap-6 mb-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="billType"
+                    value="individual"
+                    checked={billType === 'individual'}
+                    onChange={() => setBillType('individual')}
+                  />
+                  Paragon
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="billType"
+                    value="company"
+                    checked={billType === 'company'}
+                    onChange={() => setBillType('company')}
+                  />
+                  Faktura
+                </label>
+                {billType === 'company' && (
+                  <input
+                    type="text"
+                    value={nip}
+                    onChange={e => setNip(e.target.value)}
+                    placeholder="NIP"
+                    className="border border-gray-300 rounded-xl p-2 w-32 ml-2"
+                    maxLength={10}
+                  />
+                )}
+              </div>
+              <Button
+                onClick={handleMakeReservation}
+                variant="primary"
+                className="w-full px-8 py-3 text-lg rounded-xl font-semibold"
+              >
+                Potwierdź rezerwację
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* MAPA */}
         <Card className="p-6 bg-white/90 shadow-xl rounded-2xl border border-gray-100">
           <h2 className="text-xl font-semibold mb-4 text-primary">Lokalizacja hotelu</h2>
-          {latitude && longitude ? (
+          {lat && lng ? (
             <div className="w-full h-80 rounded-xl overflow-hidden">
               <iframe
                 title="Mapa hotelu"
@@ -58,14 +191,16 @@ export default function RoomDetailPage() {
                 style={{ border: 0 }}
                 loading="lazy"
                 allowFullScreen
-                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyDyo_84FCDAs5znOrrHXcZOXOkcbxietdU&q=${latitude},${longitude}&zoom=15`}
+                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyDyo_84FCDAs5znOrrHXcZOXOkcbxietdU&q=${lat},${lng}&zoom=15`}
               />
             </div>
           ) : (
             <p>Brak danych o lokalizacji hotelu.</p>
           )}
         </Card>
-        <Link to={`/room/${room.id_room}`}>
+
+        {/* MINI-KARTA (link zwrotny do listy) */}
+        <Link to={`/search`} className="block">
           <RoomCard room={room} />
         </Link>
       </div>

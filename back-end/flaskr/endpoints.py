@@ -296,7 +296,7 @@ def search_free_rooms():
             for i, facility in enumerate(room_facilities):
                 params[f"rf_{i}"] = facility
             # Ensure all required facilities are present
-            group_by = " GROUP BY r.id_room, r.capacity, r.price_per_night, h.name, a.city, a.country, h.stars"
+            group_by = " GROUP BY r.id_room, r.capacity, r.price_per_night, h.id_hotel, h.name, a.city, a.country, h.stars"
             having = (
                 f" HAVING COUNT(DISTINCT rf.facility_name) = {len(room_facilities)}"
             )
@@ -318,7 +318,7 @@ def search_free_rooms():
                 params[f"hf_{i}"] = facility
             # Ensure all required hotel facilities are present
             if group_by == "":
-                group_by = " GROUP BY r.id_room, r.capacity, r.price_per_night, h.name, a.city, a.country, h.stars"
+                group_by = " GROUP BY r.id_room, r.capacity, r.price_per_night, h.id_hotel, h.name, a.city, a.country, h.stars"
             having += (
                 f" AND COUNT(DISTINCT hf.facility_name) = {len(hotel_facilities)}"
                 if having
@@ -372,7 +372,6 @@ def search_free_rooms():
             ),
             500,
         )
-
 
 @endp_bp.route("/post_reservation", methods=["POST"])
 @jwt_required()
@@ -557,8 +556,7 @@ def post_cancellation():
         current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
             return (
-                jsonify({"error": "Brak uprawnień do anulowania tej rezerwacji"}),
-                403,
+                jsonify({"error": "Brak uprawnień do anulowania tej rezerwacji"}), 403
             )
 
         reservation = Reservation.query.filter_by(
@@ -566,8 +564,7 @@ def post_cancellation():
         ).first()
         if not reservation:
             return (
-                jsonify({"error": "Wskazana rezerwacja nie istnieje"}),
-                404,
+                jsonify({"error": "Wskazana rezerwacja nie istnieje"}), 404
             )
         reservation.reservation_status = "C"
         db.session.commit()

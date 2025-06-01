@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import PageLayout from '../components/layout/PageLayout';
@@ -8,37 +8,50 @@ import RoomCard from '../components/RoomCard';
 import api from '../api/api';
 import { FaStar } from 'react-icons/fa';
 
-const ROOM_OPTIONS = ['Basen', 'Klimatyzacja', 'TV', 'Sejf'];
-const HOTEL_OPTIONS = ['Basen', 'SPA', 'Siłownia', 'Restauracja'];
+const ROOM_OPTIONS = [
+  { label: 'Klimatyzacja', value: 'Air Conditioning' },
+  { label: 'TV', value: 'TV' },
+  { label: 'Mini Bar', value: 'Mini Bar' },
+  { label: 'Balkon', value: 'Balcony' },
+  { label: 'Wanna', value: 'Bathtub' },
+  { label: 'Ekspres do kawy', value: 'Coffee Machine' }
+];
+
+const HOTEL_OPTIONS = [
+  { label: 'WiFi', value: 'WiFi' },
+  { label: 'Parking', value: 'Parking' },
+  { label: 'Basen', value: 'Swimming Pool' },
+  { label: 'Siłownia', value: 'Gym' },
+  { label: 'Restauracja', value: 'Restaurant' },
+  { label: 'Spa', value: 'Spa' },
+  { label: 'Sala konferencyjna', value: 'Conference Room' },
+  { label: 'Zwierzęta', value: 'Pet-Friendly' }
+];
 
 export default function SearchPage() {
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-  const [guests, setGuests] = useState(1);
-  const [lowestPrice, setLowestPrice] = useState('');
-  const [highestPrice, setHighestPrice] = useState('');
-  const [selectedRoomFac, setSelectedRoomFac] = useState([]);
-  const [selectedHotelFac, setSelectedHotelFac] = useState([]);
-  const [countries, setCountries] = useState('');
-  const [cities, setCities] = useState('');
-  const [minStars, setMinStars] = useState(0);
-  const [maxStars] = useState(5);
-  const [rooms, setRooms] = useState([]);
-  const [error, setError] = useState(null);
-  const [openAdvanced, setOpenAdvanced] = useState(false);
+  const [startDate, setStartDate]           = useState(null);
+  const [endDate,   setEndDate]             = useState(null);
+  const [guests,    setGuests]              = useState(1);
+  const [lowestPrice,  setLowestPrice]      = useState('');
+  const [highestPrice, setHighestPrice]     = useState('');
+  const [selectedRoomFac,  setSelectedRoomFac]   = useState([]);
+  const [selectedHotelFac, setSelectedHotelFac]  = useState([]);
+  const [countries, setCountries]           = useState('');
+  const [cities,    setCities]              = useState('');
+  const [minStars,  setMinStars]            = useState(0);
+  const [rooms,     setRooms]               = useState([]);
+  const [error,     setError]               = useState(null);
+  const [openAdvanced, setOpenAdvanced]     = useState(false);
+  const [roomOptions, setRoomOptions]       = useState(ROOM_OPTIONS);
+  const [hotelOptions, setHotelOptions]     = useState(HOTEL_OPTIONS);
 
-  const toggleRoomFac = fac =>
-    setSelectedRoomFac(prev =>
-      prev.includes(fac) ? prev.filter(f => f !== fac) : [...prev, fac]
-    );
-  
-    const toggleHotelFac = fac =>
-    setSelectedHotelFac(prev =>
-      prev.includes(fac) ? prev.filter(f => f !== fac) : [...prev, fac]
-    );
-  
-  function StarRating({ value, onChange, max = 5 }) {
-  return (
+  /* ---------- helpers ---------- */
+  const toggleRoomFac  = v => setSelectedRoomFac(prev =>
+    prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v]);
+  const toggleHotelFac = v => setSelectedHotelFac(prev =>
+    prev.includes(v) ? prev.filter(f => f !== v) : [...prev, v]);
+
+  const StarRating = ({ value, onChange, max = 5 }) => (
     <div className="flex space-x-1">
       {Array.from({ length: max }).map((_, i) => (
         <FaStar
@@ -50,100 +63,118 @@ export default function SearchPage() {
       ))}
     </div>
   );
-}
+
+  /* ---------- search ---------- */
   const handleSearch = async () => {
-    if (!startDate || !endDate) return setError('Wybierz daty');
-    if (guests <= 0) return setError('Liczba gości musi być > 0');
+    if (!startDate || !endDate)  return setError('Wybierz daty');
+    if (guests <= 0)             return setError('Liczba gości musi być > 0');
     setError(null);
     try {
-      const payload = { 
-        start_date: startDate.toISOString().slice(0,10), 
-        end_date: endDate.toISOString().slice(0,10), 
-        guests 
+      const payload = {
+        start_date: startDate.toISOString().slice(0, 10),
+        end_date:   endDate.toISOString().slice(0, 10),
+        guests
       };
-      if (lowestPrice) payload.lowest_price = parseFloat(lowestPrice);
-      if (highestPrice) payload.highest_price = parseFloat(highestPrice);
-      if (selectedRoomFac.length) payload.room_facilities = selectedRoomFac;
+      if (lowestPrice)      payload.lowest_price      = +lowestPrice;
+      if (highestPrice)     payload.highest_price     = +highestPrice;
+      if (selectedRoomFac.length)  payload.room_facilities  = selectedRoomFac;
       if (selectedHotelFac.length) payload.hotel_facilities = selectedHotelFac;
       if (countries) payload.countries = countries.split(',').map(c => c.trim());
-      if (cities) payload.city = cities.split(',').map(c => c.trim());
+      if (cities)    payload.city      = cities.split(',').map(c => c.trim());
       if (minStars > 0) payload.min_hotel_stars = minStars;
-      if (maxStars < 5) payload.max_hotel_stars = maxStars;
 
-      const { data } = await api.post('/search_free_rooms', payload);
-      const rooms = data.available_rooms || [];
+      /* --- zapytanie do backendu --- */
+      const { data }   = await api.post('/search_free_rooms', payload);
+      console.log('DEBUG: /search_free_rooms data', data);
+      const rawRooms   = data.available_rooms || [];
 
-      const validRooms = rooms.filter(r => r.id_hotel);
+      /* odrzucamy rekordy bez id_hotel */
+      const roomsArr = rawRooms.filter(r => r.id_hotel);
 
-      const hotelIds = [...new Set(validRooms.map(r => r.id_hotel))];
+      /* ---------- zdjęcia hoteli (odporne na błędy) ---------- */
+      const hotelIds = [...new Set(roomsArr.map(r => r.id_hotel))];
       const imagesMap = {};
 
-      await Promise.all(hotelIds.map(async hid => {
-        const { data: imgs } = await api.get(`/hotel_images/${hid}`);
-        let mainUrl = null;
-        if (imgs && imgs.length > 0) {
-          const main = imgs.find(img => img.is_main) || imgs[0];
-          mainUrl = main.url;
-        }
-        imagesMap[hid] = mainUrl;
-      }));
+      await Promise.allSettled(
+        hotelIds.map(async id => {
+          try {
+            const { data: imgs } = await api.get(`/hotel_images/${id}`);
+            if (imgs?.length) {
+              const main = imgs.find(i => i.is_main) || imgs[0];
+              imagesMap[id] = main.url;
+            }
+          } catch (e) {
+            console.warn('DEBUG: /hotel_images error', id, e.message);
+          }
+        })
+      );
 
-      const roomsWithImages = validRooms.map(r => ({
+      /* ---------- finalny stan ---------- */
+      const finalRooms = roomsArr.map(r => ({
         ...r,
-        hotel_image: imagesMap[r.id_hotel] || null,
+        hotel_image: imagesMap[r.id_hotel] || null
       }));
+      console.log('DEBUG: finalRooms', finalRooms);
 
-      setRooms(roomsWithImages);
+      setRooms(finalRooms);
     } catch (err) {
       setError(err.response?.data?.error || 'Błąd wyszukiwania');
       setRooms([]);
     }
   };
 
+  /* ---------- fetch facilities (dynamic options) ---------- */
+  useEffect(() => {
+    async function fetchFacilities() {
+      const { data: roomFacilities } = await api.get('/room_facilities');
+      const { data: hotelFacilities } = await api.get('/hotel_facilities');
+      setRoomOptions(roomFacilities.room_facilities.map(f => ({ label: f, value: f })));
+      setHotelOptions(hotelFacilities.hotel_facilities.map(f => ({ label: f, value: f })));
+    }
+    fetchFacilities();
+  }, []);
+
+  /* ---------- render ---------- */
   return (
     <PageLayout>
       <div className="max-w-5xl mx-auto py-10 px-2 sm:px-6 space-y-10">
-        <h2 className="text-3xl font-bold text-center mb-2 text-primary">Wyszukaj dostępne pokoje</h2>
+        <h2 className="text-3xl font-bold text-center mb-2 text-primary">
+          Wyszukaj dostępne pokoje
+        </h2>
         {error && <p className="text-red-600 text-center font-semibold">{error}</p>}
 
-        {/* Karta z podstawowymi filtrami */}
+        {/* ----------- PODSTAWOWE FILTRY ----------- */}
         <Card className="p-8 bg-white/90 shadow-xl rounded-2xl border border-gray-100">
           <h3 className="text-xl font-semibold mb-6 text-primary">Gdzie jedziesz?</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* data rozpoczęcia */}
             <div>
               <span className="block text-sm font-medium mb-1 text-gray-700">Data rozpoczęcia</span>
               <DatePicker
                 selected={startDate}
                 onChange={d => { setStartDate(d); if (endDate && d > endDate) setEndDate(null); }}
-                selectsStart
-                startDate={startDate}
-                endDate={endDate}
-                placeholderText="Wybierz datę"
-                dateFormat="yyyy-MM-dd"
+                selectsStart startDate={startDate} endDate={endDate}
+                placeholderText="Wybierz datę" dateFormat="yyyy-MM-dd"
                 className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
               />
             </div>
+            {/* data zakończenia */}
             <div>
               <span className="block text-sm font-medium mb-1 text-gray-700">Data zakończenia</span>
               <DatePicker
                 selected={endDate}
                 onChange={setEndDate}
-                selectsEnd
-                startDate={startDate}
-                endDate={endDate}
-                minDate={startDate}
-                placeholderText="Wybierz datę"
-                dateFormat="yyyy-MM-dd"
+                selectsEnd startDate={startDate} endDate={endDate} minDate={startDate}
+                placeholderText="Wybierz datę" dateFormat="yyyy-MM-dd"
                 className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
               />
             </div>
+            {/* goście */}
             <div>
               <span className="block text-sm font-medium mb-1 text-gray-700">Liczba gości</span>
               <input
-                type="number"
-                min="1"
-                value={guests}
-                onChange={e => setGuests(+e.target.value || 1)}
+                type="number" min="1" value={guests}
+                onChange={e => setGuests(Math.max(+e.target.value || 1, 1))}
                 placeholder="Liczba gości"
                 className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
               />
@@ -151,43 +182,33 @@ export default function SearchPage() {
           </div>
         </Card>
 
-        {/* Karta z zaawansowanymi filtrami */}
+        {/* ----------- ZAAWANSOWANE FILTRY ----------- */}
         <Card className="p-8 bg-white/90 shadow-xl rounded-2xl border border-gray-100">
           <button
             onClick={() => setOpenAdvanced(o => !o)}
             className="w-full flex justify-between items-center text-lg font-semibold text-primary"
           >
             Zaawansowane filtry
-            <span
-              className={`transform transition-transform duration-300 ${openAdvanced ? 'rotate-180' : 'rotate-0'}`}
-            >
-              ▼
-            </span>
+            <span className={`transform transition-transform ${openAdvanced ? 'rotate-180' : 'rotate-0'}`}>▼</span>
           </button>
 
-          <div
-            className={`overflow-hidden transition-all duration-500 ${openAdvanced ? 'max-h-[800px] mt-6' : 'max-h-0'}`}
-          >
+          <div className={`overflow-hidden transition-all duration-500 ${openAdvanced ? 'max-h-[800px] mt-6' : 'max-h-0'}`}>
             <div className="space-y-8">
               {/* CENA */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <span className="block text-sm font-medium mb-1 text-gray-700">Min cena (cały pobyt)</span>
+                  <span className="block text-sm font-medium mb-1 text-gray-700">Min cena (za noc)</span>
                   <input
-                    type="number"
-                    step="0.01"
-                    value={lowestPrice}
+                    type="number" step="0.01" value={lowestPrice}
                     onChange={e => setLowestPrice(e.target.value)}
                     placeholder="Min cena"
                     className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
                   />
                 </div>
                 <div>
-                  <span className="block text-sm font-medium mb-1 text-gray-700">Max cena (cały pobyt)</span>
+                  <span className="block text-sm font-medium mb-1 text-gray-700">Max cena (za noc)</span>
                   <input
-                    type="number"
-                    step="0.01"
-                    value={highestPrice}
+                    type="number" step="0.01" value={highestPrice}
                     onChange={e => setHighestPrice(e.target.value)}
                     placeholder="Max cena"
                     className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
@@ -195,22 +216,19 @@ export default function SearchPage() {
                 </div>
               </div>
 
-              {/* UDOGODNIENIA POKOI */}
+              {/* UDOGODNIENIA POKOJU */}
               <fieldset>
                 <legend className="font-medium mb-2 text-gray-800">Udogodnienia pokoi</legend>
                 <div className="flex flex-wrap gap-4">
-                  {ROOM_OPTIONS.map(fac => (
-                    <label
-                      key={fac}
-                      className="inline-flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-xl shadow-sm hover:bg-primary/10 transition"
-                    >
+                  {roomOptions.map(opt => (
+                    <label key={opt.value} className="inline-flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-xl shadow-sm hover:bg-primary/10 transition">
                       <input
                         type="checkbox"
-                        checked={selectedRoomFac.includes(fac)}
-                        onChange={() => toggleRoomFac(fac)}
+                        checked={selectedRoomFac.includes(opt.value)}
+                        onChange={() => toggleRoomFac(opt.value)}
                         className="form-checkbox accent-primary"
                       />
-                      <span className="text-gray-700">{fac}</span>
+                      <span className="text-gray-700">{opt.label}</span>
                     </label>
                   ))}
                 </div>
@@ -220,31 +238,26 @@ export default function SearchPage() {
               <fieldset>
                 <legend className="font-medium mb-2 text-gray-800">Udogodnienia hotelu</legend>
                 <div className="flex flex-wrap gap-4">
-                  {HOTEL_OPTIONS.map(fac => (
-                    <label
-                      key={fac}
-                      className="inline-flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-xl shadow-sm hover:bg-primary/10 transition"
-                    >
+                  {hotelOptions.map(opt => (
+                    <label key={opt.value} className="inline-flex items-center space-x-2 bg-gray-100 px-3 py-2 rounded-xl shadow-sm hover:bg-primary/10 transition">
                       <input
                         type="checkbox"
-                        checked={selectedHotelFac.includes(fac)}
-                        onChange={() => toggleHotelFac(fac)}
+                        checked={selectedHotelFac.includes(opt.value)}
+                        onChange={() => toggleHotelFac(opt.value)}
                         className="form-checkbox accent-primary"
                       />
-                      <span className="text-gray-700">{fac}</span>
+                      <span className="text-gray-700">{opt.label}</span>
                     </label>
                   ))}
                 </div>
               </fieldset>
 
-              {/* KRAJE I MIASTA */}
+              {/* LOKALIZACJA */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <span className="block text-sm font-medium mb-1 text-gray-700">Państwa (oddzielone przecinkami)</span>
                   <input
-                    type="text"
-                    value={countries}
-                    onChange={e => setCountries(e.target.value)}
+                    type="text" value={countries} onChange={e => setCountries(e.target.value)}
                     placeholder="Polska, Niemcy"
                     className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
                   />
@@ -252,9 +265,7 @@ export default function SearchPage() {
                 <div>
                   <span className="block text-sm font-medium mb-1 text-gray-700">Miasta (oddzielone przecinkami)</span>
                   <input
-                    type="text"
-                    value={cities}
-                    onChange={e => setCities(e.target.value)}
+                    type="text" value={cities} onChange={e => setCities(e.target.value)}
                     placeholder="Warszawa, Berlin"
                     className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
                   />
@@ -264,13 +275,13 @@ export default function SearchPage() {
               {/* GWIAZDKI */}
               <div>
                 <span className="block text-sm font-medium mb-1 text-gray-700">Minimalne gwiazdki hotelu</span>
-                <StarRating value={minStars} onChange={setMinStars} max={5} />
+                <StarRating value={minStars} onChange={setMinStars} />
               </div>
             </div>
           </div>
         </Card>
 
-
+        {/* PRZYCISK SZUKAJ */}
         <div className="flex justify-center">
           <Button
             onClick={handleSearch}
@@ -281,7 +292,7 @@ export default function SearchPage() {
           </Button>
         </div>
 
-        {/* Results */}
+        {/* WYNIKI */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {rooms.length > 0 ? (
             rooms.map(room => (
@@ -289,18 +300,14 @@ export default function SearchPage() {
                 key={room.id_room}
                 className="bg-white/95 rounded-2xl shadow-lg hover:shadow-2xl transition flex flex-col items-center"
               >
-                <img
-                  src={
-                    room.hotel_image
-                      ? room.hotel_image
-                      : `http://localhost:8888/images/hotels/${room.hotel_name
-                          ?.toLowerCase()
-                          .replace(/\s/g, '_')}.jpg`
-                  }
-                  alt={room.hotel_name}
-                  className="w-full h-48 object-cover rounded-t-2xl mb-4"
-                  onError={e => { e.currentTarget.style.display = 'none'; }}
-                />
+                {room.hotel_image && (
+                  <img
+                    src={room.hotel_image}
+                    alt={room.hotel_name}
+                    className="w-full h-48 object-cover rounded-t-2xl mb-4"
+                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
                 <RoomCard room={room} />
               </Card>
             ))

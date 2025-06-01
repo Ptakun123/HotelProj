@@ -46,7 +46,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          {/* profil tylko dla zalogowanych */}
           <Route
             path="/profile"
             element={
