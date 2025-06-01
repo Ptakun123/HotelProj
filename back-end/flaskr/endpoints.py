@@ -211,7 +211,11 @@ def search_free_rooms():
         }
         where_clauses = [
             "r.capacity = :guests",
-            "r.id_room NOT IN (SELECT id_room FROM reservations WHERE NOT (last_night < :start_date OR first_night > :end_date))",
+            """r.id_room NOT IN (
+                SELECT id_room FROM reservations
+                WHERE reservation_status != 'C'
+                    AND NOT (last_night < :start_date OR first_night > :end_date)
+            )""",
         ]
 
         # City/country logic
@@ -394,7 +398,11 @@ def post_reservation():
                 400,
             )
 
+
+        id_room = data["id_room"]           # <-- DODAJ TO
         id_user = data["id_user"]
+        full_name = data["full_name"]       # <-- DODAJ TO
+        bill_type = data["bill_type"]
 
         current_user_id = int(get_jwt_identity())
         if id_user != current_user_id:
@@ -431,12 +439,14 @@ def post_reservation():
         total_price = float(room.price_per_night) * nights
 
         # Sprawdzenie, czy pokój jest dostępny w podanym terminie
+        # Sprawdzenie, czy pokój jest dostępny w podanym terminie
         query = db.session.execute(
             text(
                 """
                 SELECT 1
                 FROM reservations
                 WHERE id_room = :id_room
+                    AND reservation_status != 'C'
                     AND NOT (last_night < :first_night OR first_night > :last_night)
                 """
             ),

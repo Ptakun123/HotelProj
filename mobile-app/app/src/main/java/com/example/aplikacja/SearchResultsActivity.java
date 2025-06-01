@@ -1,8 +1,11 @@
 package com.example.aplikacja;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -10,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,7 +38,9 @@ public class SearchResultsActivity extends AppCompatActivity {
     private RoomAdapter adapter;
     private final OkHttpClient client = new OkHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
-
+    String startDate, endDate;
+    private UserAndTokens userAndTokens;
+    List<Room> roomsList;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,10 +50,12 @@ public class SearchResultsActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         Intent intent = getIntent();
         HashMap<String, Object> json = new HashMap<>();
-
+        userAndTokens = intent.getExtras().getParcelable("User_data");
 // Daty i liczba gości
-        json.put("start_date", intent.getStringExtra("startDate"));
-        json.put("end_date", intent.getStringExtra("endDate"));
+        startDate = intent.getStringExtra("startDate");
+        json.put("start_date", startDate);
+        endDate = intent.getStringExtra("endDate");
+        json.put("end_date", endDate);
         json.put("guests", intent.getIntExtra("guests", 1));
 
 // Ceny i gwiazdki
@@ -64,7 +72,7 @@ public class SearchResultsActivity extends AppCompatActivity {
             json.put("min_hotel_stars", Integer.parseInt(minStars));
         }
         String maxStars = intent.getStringExtra("maxStars");
-        if (maxStars != null && !maxStars.isEmpty()){
+        if (maxStars != null && !maxStars.isEmpty()) {
             json.put("max_hotel_stars", Integer.parseInt(maxStars));
         }
 
@@ -80,15 +88,15 @@ public class SearchResultsActivity extends AppCompatActivity {
 
 // Kraje
         ArrayList<String> countries = new ArrayList<>();
-        String country =(intent.getStringExtra("country"));
-        if(country!= null && !country.isEmpty()) {
+        String country = (intent.getStringExtra("country"));
+        if (country != null && !country.isEmpty()) {
             countries.add(country);
             json.put("countries", countries);
         }
         // Kraje
         ArrayList<String> city = new ArrayList<>();
-        String city_str=(intent.getStringExtra("city"));
-        if(city_str!=null && !city_str.isEmpty()) {
+        String city_str = (intent.getStringExtra("city"));
+        if (city_str != null && !city_str.isEmpty()) {
             city.add(city_str);
             json.put("city", city);
         }
@@ -98,13 +106,13 @@ public class SearchResultsActivity extends AppCompatActivity {
         json.put("room_facilities", roomFacilities != null ? roomFacilities : new ArrayList<>());
         json.put("hotel_facilities", hotelFacilities != null ? hotelFacilities : new ArrayList<>());
         String jsonStr;
-            try {
-                 jsonStr = mapper.writeValueAsString(json);
-            } catch (JsonProcessingException e) {
-                throw new RuntimeException(e);
-            }
-            RequestBody body = RequestBody.create(jsonStr, MediaType.parse("application/json"));
-            Log.d("My_app", jsonStr);
+        try {
+            jsonStr = mapper.writeValueAsString(json);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        RequestBody body = RequestBody.create(jsonStr, MediaType.parse("application/json"));
+        Log.d("My_app", jsonStr);
         Request request = new Request.Builder()
                 .url("http://10.0.2.2:5000/search_free_rooms")
                 .post(body)
@@ -128,20 +136,61 @@ public class SearchResultsActivity extends AppCompatActivity {
                         return;
                     });
                     return;
-                }
-                else {
+                } else {
                     String jsonResponse = response.body().string();
-                    
+
                     JsonNode rootNode = mapper.readTree(jsonResponse);
                     JsonNode roomsNode = rootNode.get("available_rooms");
                     Room[] roomsArray = mapper.treeToValue(roomsNode, Room[].class);
-                    List<Room> roomsList = Arrays.asList(roomsArray);
-                    runOnUiThread(() -> {
-                        adapter = new RoomAdapter(roomsList);
-                        recyclerView.setAdapter(adapter);
-                    });
+                    roomsList = Arrays.asList(roomsArray);
+                    for (int i = 0; i < roomsList.size(); ++i) {
+                        roomsList.get(i).imageURLs = new ArrayList<>();
+                        String hotel_id = roomsList.get(i).hotel_id;
+                        Request imgRequest = new Request.Builder().url("http://10.0.2.2:5000/hotel_images/" + hotel_id).build();
+                        int finalI = i;
+                        client.newCall(imgRequest).enqueue(new Callback() {
+                            @Override
+                            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                                runOnUiThread(() -> Toast.makeText(SearchResultsActivity.this, "Błąd zdjęć", Toast.LENGTH_SHORT).show());
+                            }
+
+                            @Override
+                            public void onResponse(@NonNull Call call, @NonNull Response response2) throws IOException {
+                                if(!response2.isSuccessful()){
+                                    runOnUiThread(() -> Toast.makeText(SearchResultsActivity.this, "Błąd zdjęć2", Toast.LENGTH_SHORT).show());
+                                }
+                                else {
+                                    ObjectMapper mapper = new ObjectMapper();
+                                    JsonNode rootNode = mapper.readTree(response2.body().string());
+                                    Log.d("My_app", rootNode.toString());// ← Twój JSON jako string
+                                    for (JsonNode node : rootNode) {
+                                        String url = node.get("url").asText();
+                                        Log.d("My_app", url);
+                                        String fixedUrl = url.replace("localhost", "10.0.2.2");
+                                        Log.d("My_app", fixedUrl);
+                                        roomsList.get(finalI).imageURLs.add(fixedUrl);
+                                    }
+                                }
+                                if(finalI == roomsList.size()-1){
+                                    runOnUiThread(() -> {
+                                        adapter = new RoomAdapter(roomsList, room -> {
+                                            Intent intent = new Intent(SearchResultsActivity.this, SingleOfferActivity.class);
+                                            intent.putExtra("Room_info", room);
+                                            intent.putExtra("User_info", userAndTokens);
+                                            intent.putExtra("Start_date", startDate);
+                                            intent.putExtra("End_date", endDate);
+                                            startActivity(intent);
+                                        });
+                                        recyclerView.setAdapter(adapter);
+                                    });
+                                }
+                            }
+                        });
+                    }
+
                 }
             }
         });
     }
+
 }

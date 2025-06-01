@@ -60,7 +60,7 @@ public class UserAndTokens implements Parcelable {
             this.access_token = node.get("access_token").asText();
             this.refresh_token = node.get("refresh_token").asText();
             this.token_type = node.get("token_type").asText();
-            this.user_id = node.get("user").get("id").asInt();
+            this.user_id = node.get("user").get("id_user").asInt();
             this.email = node.get("user").get("email").asText();
             this.first_name = node.get("user").get("first_name").asText();
             this.last_name = node.get("user").get("last_name").asText();

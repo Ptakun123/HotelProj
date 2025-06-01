@@ -71,6 +71,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Button btnSortBy = findViewById(R.id.btnSortBy);
         Button btnSortOrder = findViewById(R.id.btnSortOrder);
         Button search = findViewById(R.id.search);
+        Button my_account = findViewById(R.id.my_account);
+        my_account.setOnClickListener(v ->{
+            Intent intent1 = new Intent(this, AccountDetails.class);
+            intent1.putExtra("User_details", userAndTokens);
+            startActivity(intent1);
+        });
         search.setOnClickListener(v -> {
             if (startDate == null || endDate == null || guests.getText().length()==0) {
                 Toast.makeText(this, "Musisz wybrać termin oraz liczbę gości", Toast.LENGTH_SHORT).show();
@@ -173,11 +179,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             intent1.putExtra("guests", Integer.parseInt(guests.getText().toString()));
 
             // Zakres ceny
+            if(intMinPrice !=-1) {
+                String minPricewhole = Integer.toString(intMaxPrice * nights);
+                intent1.putExtra("minPrice", minPricewhole);
+            }
+            if(intMaxPrice!= -1) {
+                String maxPricewhole = Integer.toString(intMinPrice * nights);
+                intent1.putExtra("maxPrice",maxPricewhole);
+            }
 
-            String minPricewhole =Integer.toString(Integer.parseInt(minPriceStr) * nights);
-            String maxPricewhole =Integer.toString(Integer.parseInt(maxPriceStr) * nights);
-            intent1.putExtra("minPrice", minPricewhole);
-            intent1.putExtra("maxPrice",maxPricewhole);
+
 
             // Zakres gwiazdek
             intent1.putExtra("minStars", minStars.getText().toString());
