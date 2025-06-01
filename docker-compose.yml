@@ -45,6 +45,20 @@ services:
     networks:
       - hotel_network
 
+  frontend:
+    build:
+      context: ./front-end/terminal
+      dockerfile: Dockerfile
+    container_name: frontend_app
+    ports:
+      - "3000:3000"
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      - backend
+    networks:
+      - hotel_network
+
 volumes:
   postgres_data:
 

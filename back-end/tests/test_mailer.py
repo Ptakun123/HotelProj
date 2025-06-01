@@ -10,6 +10,7 @@ from mailer import (
 
 class MailerTestCase(unittest.TestCase):
     def setUp(self):
+        # Konfiguracja przykładowych danych do testów mailera.
         self.user = User(
             email="test@example.com",
             first_name="Jan",
@@ -39,6 +40,7 @@ class MailerTestCase(unittest.TestCase):
             reservation_status="A",
         )
 
+    # Test generowania maila potwierdzającego rezerwację
     def test_get_confirmation_email_content(self):
         email = get_confirmation_email(
             self.user, self.reservation, self.hotel, self.address
@@ -50,6 +52,7 @@ class MailerTestCase(unittest.TestCase):
         self.assertEqual(email["receiver_email"], self.user.email)
         self.assertIsNotNone(email["attachment"])
 
+    # Test generowania maila potwierdzającego anulowanie rezerwacji
     def test_get_cancellation_email_content(self):
         email = get_cancellation_email(self.user, self.reservation, self.hotel)
         self.assertIn("Potwierdzenie anulowania rezerwacji hotelowej", email["subject"])
@@ -57,6 +60,7 @@ class MailerTestCase(unittest.TestCase):
         self.assertIn("Twoja rezerwacja została anulowana", email["body"])
         self.assertEqual(email["receiver_email"], self.user.email)
 
+    # Test generowania załącznika faktury VAT
     def test_generate_invoice_attachment_faktura(self):
         attachment = generate_invoice_attachment(self.reservation, self.user)
         self.assertIn("faktura", attachment.get_filename())
@@ -65,6 +69,7 @@ class MailerTestCase(unittest.TestCase):
         self.assertIn(self.user.email, payload)
         self.assertIn(self.reservation.nip, payload)
 
+    # Test generowania załącznika paragonu
     def test_generate_invoice_attachment_paragon(self):
         self.reservation.bill_type = "P"
         self.reservation.nip = None

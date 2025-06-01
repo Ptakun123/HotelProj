@@ -10,6 +10,7 @@ from flask_jwt_extended import JWTManager
 
 class AuthorizationTestCase(unittest.TestCase):
     def setUp(self):
+        # Konfiguracja aplikacji Flask i bazy danych do testów
         self.app = Flask(__name__)
         self.app.config["TESTING"] = True
         self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
@@ -22,11 +23,12 @@ class AuthorizationTestCase(unittest.TestCase):
         self.client = self.app.test_client()
 
     def tearDown(self):
+        # Czyszczenie bazy po każdym teście
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
 
-    # register()
+    # Test rejestracji - poprawne dane
     def test_register_success(self):
         payload = {
             "email": "test@example.com",
@@ -43,6 +45,7 @@ class AuthorizationTestCase(unittest.TestCase):
             "Rejestracja zakończona pomyślnie", response.get_json().get("message", "")
         )
 
+    # Test rejestracji - duplikat emaila
     def test_register_duplicate_email(self):
         with self.app.app_context():
             user = User(
@@ -71,6 +74,7 @@ class AuthorizationTestCase(unittest.TestCase):
             "Email jest już zarejestrowany", response.get_json().get("error", "")
         )
 
+    # Test rejestracji - brak wymaganych pól
     def test_register_missing_fields(self):
         payload = {
             "email": "test@example.com",
@@ -80,6 +84,7 @@ class AuthorizationTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Brakujące wymagane pola", response.get_json().get("error", ""))
 
+    # Test rejestracji - niepoprawny email
     def test_register_invalid_email(self):
         payload = {
             "email": "invalidemail",
@@ -94,6 +99,7 @@ class AuthorizationTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Niepoprawny format email", response.get_data(as_text=True))
 
+    # Test rejestracji - niepoprawne hasło
     def test_register_invalid_password(self):
         payload = {
             "email": "test2@example.com",
@@ -108,6 +114,7 @@ class AuthorizationTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("Hasło", response.get_json().get("error", ""))
 
+    # Test rejestracji - niepoprawna data urodzenia
     def test_register_invalid_birth_date(self):
         payload = {
             "email": "test3@example.com",
@@ -122,7 +129,7 @@ class AuthorizationTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("data urodzenia", response.get_json().get("error", ""))
 
-    # login()
+    # Test logowania - poprawne dane
     def test_login_success(self):
         with self.app.app_context():
             user = User(
@@ -141,6 +148,7 @@ class AuthorizationTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("access_token", response.get_json())
 
+    # Test logowania - brak wymaganych pól
     def test_login_missing_fields(self):
         payload = {"email": "test@example.com"}
         response = self.client.post("/auth/login", json=payload)
@@ -149,6 +157,7 @@ class AuthorizationTestCase(unittest.TestCase):
             "Wymagane pola: email i hasło", response.get_json().get("error", "")
         )
 
+    # Test logowania - błędne hasło
     def test_login_wrong_password(self):
         with self.app.app_context():
             user = User(
@@ -169,6 +178,7 @@ class AuthorizationTestCase(unittest.TestCase):
             "Nieprawidłowy email lub hasło", response.get_json().get("error", "")
         )
 
+    # Test logowania - nieistniejący użytkownik
     def test_login_nonexistent_user(self):
         payload = {"email": "notfound@example.com", "password": "StrongPass1"}
         response = self.client.post("/auth/login", json=payload)

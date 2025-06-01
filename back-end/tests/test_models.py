@@ -7,6 +7,7 @@ from flaskr.extensions import db
 
 class ModelsTestCase(unittest.TestCase):
     def setUp(self):
+        # Konfiguracja aplikacji Flask i bazy danych do testów modeli.
         self.app = Flask(__name__)
         self.app.config["TESTING"] = True
         self.app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
@@ -17,10 +18,12 @@ class ModelsTestCase(unittest.TestCase):
         self.ctx.push()
 
     def tearDown(self):
+        # Czyszczenie bazy po każdym teście
         db.session.remove()
         db.drop_all()
         self.ctx.pop()
 
+    # Test haszowania i sprawdzania hasła użytkownika
     def test_user_password_hashing(self):
         user = User(
             email="test@example.com",
