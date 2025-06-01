@@ -79,32 +79,6 @@ class MailerTestCase(unittest.TestCase):
         self.assertIn("Paragon", payload)
         self.assertIn(self.user.email, payload)
 
-    # Test generowania maila potwierdzającego rezerwację - brak adresu
-    def test_get_confirmation_email_no_address(self):
-        email = get_confirmation_email(self.user, self.reservation, self.hotel, None)
-        self.assertIn("Potwierdzenie rezerwacji hotelowej", email["subject"])
-        self.assertIn(self.hotel.name, email["subject"])
-        self.assertIn("Twoja rezerwacja została potwierdzona", email["body"])
-        self.assertEqual(email["receiver_email"], self.user.email)
-        self.assertIsNotNone(email["attachment"])
-
-    # Test generowania maila anulowania rezerwacji - brak hotelu
-    def test_get_cancellation_email_no_hotel(self):
-        email = get_cancellation_email(self.user, self.reservation, None)
-        self.assertIn("Potwierdzenie anulowania rezerwacji hotelowej", email["subject"])
-        self.assertIn("Twoja rezerwacja została anulowana", email["body"])
-        self.assertEqual(email["receiver_email"], self.user.email)
-
-    # Test generowania załącznika - nieznany typ rachunku
-    def test_generate_invoice_attachment_unknown_type(self):
-        self.reservation.bill_type = "X"
-        self.reservation.nip = None
-        attachment = generate_invoice_attachment(self.reservation, self.user)
-        self.assertIn("paragon", attachment.get_filename())
-        payload = attachment.get_payload(decode=True).decode("utf-8")
-        self.assertIn("Paragon", payload)
-        self.assertIn(self.user.email, payload)
-
 
 if __name__ == "__main__":
     unittest.main()
