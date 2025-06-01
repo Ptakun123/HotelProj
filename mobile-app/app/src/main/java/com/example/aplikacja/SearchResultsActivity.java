@@ -96,9 +96,12 @@ public class SearchResultsActivity extends AppCompatActivity {
         // Kraje
         ArrayList<String> city = new ArrayList<>();
         String city_str = (intent.getStringExtra("city"));
+
         if (city_str != null && !city_str.isEmpty()) {
-            city.add(city_str);
-            json.put("city", city);
+            if(city_str != "Dowolne miasto") {
+                city.add(city_str);
+                json.put("city", city);
+            }
         }
         ArrayList<String> roomFacilities = intent.getStringArrayListExtra("roomFacilities");
         ArrayList<String> hotelFacilities = intent.getStringArrayListExtra("hotelFacilities");
@@ -123,13 +126,11 @@ public class SearchResultsActivity extends AppCompatActivity {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 runOnUiThread(() -> Toast.makeText(SearchResultsActivity.this, "Błąd połączenia", Toast.LENGTH_SHORT).show());
-                Log.d("My_app", "CHUUUJ");
             }
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    Log.d("My_app", "CHUUUJ");
                     runOnUiThread(() -> {
                         Toast.makeText(SearchResultsActivity.this, "Nie ma takich dostępnych pokoi", Toast.LENGTH_SHORT).show();
                         finish();

@@ -4,7 +4,6 @@
     android:padding="16dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
     <TextView
         android:id="@+id/userInfo"
         android:layout_width="match_parent"
@@ -12,6 +11,13 @@
         android:text="Dane użytkownika"
         android:textSize="18sp"
         android:paddingBottom="16dp"/>
+
+
+    <Button
+        android:id="@+id/change_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Zmien hasło" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/reservationsRecycler"

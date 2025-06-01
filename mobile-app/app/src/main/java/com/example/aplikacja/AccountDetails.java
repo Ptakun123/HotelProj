@@ -1,7 +1,9 @@
 package com.example.aplikacja;
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,12 +36,15 @@ public class AccountDetails extends AppCompatActivity {
     private UserAndTokens userData;
     private OkHttpClient client = new OkHttpClient();
 
+    private Button changepassword;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_details);
 
         userInfo = findViewById(R.id.userInfo);
+
         reservationsRecycler = findViewById(R.id.reservationsRecycler);
         reservationsRecycler.setLayoutManager(new LinearLayoutManager(this));
 
@@ -47,7 +52,12 @@ public class AccountDetails extends AppCompatActivity {
 
         adapter = new ReservationAdapter(this, reservationList, userData);
         reservationsRecycler.setAdapter(adapter);
-
+        changepassword = findViewById(R.id.change_password);
+        changepassword.setOnClickListener( v -> {
+            Intent intent1 = new Intent(this, ChangePassword.class);
+            intent1.putExtra("User_details", userData);
+            startActivity(intent1);
+        });
         if (userData != null) {
             displayUserInfo();
             fetchReservations(userData.user_id, userData.access_token);
@@ -78,7 +88,8 @@ public class AccountDetails extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    runOnUiThread(() -> Toast.makeText(AccountDetails.this, "Błąd: " + response.code(), Toast.LENGTH_SHORT).show());
+                    if(response.code() == 404)
+                    runOnUiThread(() -> Toast.makeText(AccountDetails.this, "Nie masz rezerwacji", Toast.LENGTH_SHORT).show());
                     return;
                 }
 

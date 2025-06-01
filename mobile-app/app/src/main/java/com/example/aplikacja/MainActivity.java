@@ -65,6 +65,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         maxPrice = findViewById(R.id.price_to);
         minStars = findViewById(R.id.editStarsFrom);
         maxStars = findViewById(R.id.editStarsTo);
+        Button btnToggleFilters = findViewById(R.id.btnToggleFilters);
+        View additionalFiltersContainer = findViewById(R.id.additionalFiltersContainer);
+
+        btnToggleFilters.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (additionalFiltersContainer.getVisibility() == View.GONE) {
+                    additionalFiltersContainer.setVisibility(View.VISIBLE);
+                    btnToggleFilters.setText("Ukryj dodatkowe filtry");
+                } else {
+                    additionalFiltersContainer.setVisibility(View.GONE);
+                    btnToggleFilters.setText("Dodatkowe filtry");
+                }
+            }
+        });
 
         chooseRoomFacilities.setOnClickListener(this);
         chooseHotelFacilities.setOnClickListener(this);
@@ -412,7 +427,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                                         String body = response.body().string();
                                                         JsonNode cityData = mapper.readTree(body);
                                                         cities = cityData.get("cities").traverse(mapper).readValueAs(String[].class);
-
+                                                        ArrayList<String> cities_full = new ArrayList<>();
+                                                        cities_full.add("Dowolne miasto");
+                                                        for(int i=0; i<cities.length; ++i)
+                                                            cities_full.add(cities[i]);
+                                                        cities = cities_full.toArray(new String[0]);
                                                         runOnUiThread(() -> {
                                                             final int[] wybraneMiasto = {-1};
                                                             new MaterialAlertDialogBuilder(MainActivity.this)
