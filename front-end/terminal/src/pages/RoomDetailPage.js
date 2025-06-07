@@ -36,6 +36,16 @@ export default function RoomDetailPage() {
   const [billType, setBillType] = useState('individual');
   const [nip, setNip] = useState('');
 
+  const handleReserveClick = () => {
+  const user = JSON.parse(localStorage.getItem('user'));
+    if (!user) {
+      alert('Musisz być zalogowany, aby zarezerwować pokój.');
+      navigate('/login');
+      return;
+    }
+    setShowModal(true);
+  };
+
   // Parsowanie dat z location.state
   useEffect(() => {
     if (location.state?.startDate) {
@@ -81,6 +91,7 @@ export default function RoomDetailPage() {
       const user = JSON.parse(localStorage.getItem('user'));
       if (!user) {
         alert('Musisz być zalogowany, aby zarezerwować pokój.');
+        navigate('/login');
         return;
       }
       if (billType === 'company' && (!nip || nip.length < 10)) {
@@ -178,7 +189,7 @@ export default function RoomDetailPage() {
         {/* PRZYCISK ZAREZERWUJ */}
         <div className="flex justify-center">
           <Button
-            onClick={() => setShowModal(true)}
+            onClick={handleReserveClick}
             variant="primary"
             className="w-full md:w-auto px-10 py-4 text-lg rounded-2xl shadow-lg bg-primary text-white hover:bg-primary/90 transition font-semibold"
           >

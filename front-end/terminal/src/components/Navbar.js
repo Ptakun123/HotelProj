@@ -22,24 +22,29 @@ export default function Navbar() {
       <ul className="navbar__links">
         <li>
           <NavLink to="/search" className={({ isActive }) => isActive ? 'active' : ''}>
-            Search
+            Wyszukaj
           </NavLink>
         </li>
-        <li>
-          <NavLink to="/my-reservations" className={({ isActive }) => isActive ? 'active' : ''}>
-            My Reservations
-          </NavLink>
-        </li>
+        {user && (
+          <li>
+            <NavLink
+              to="/my-reservations"
+              className={({ isActive }) => (isActive ? 'active' : '')}
+            >
+              Moje Rezerwacje
+            </NavLink>
+          </li>
+        )}
         {!user ? (
           <>
             <li>
               <NavLink to="/login" className={({ isActive }) => isActive ? 'active' : ''}>
-                Login
+                Logowanie
               </NavLink>
             </li>
             <li>
               <NavLink to="/register" className={({ isActive }) => isActive ? 'active' : ''}>
-                Register
+                Rejestracja
               </NavLink>
             </li>
           </>
@@ -48,7 +53,7 @@ export default function Navbar() {
             <li>
               <NavLink to="/profile" className={({ isActive }) => isActive ? 'active flex items-center gap-2' : 'flex items-center gap-2'}>
                 <FaUserCircle className="w-5 h-5" />
-                My Profile
+                Mój Profil
               </NavLink>
             </li>
             <li>
@@ -56,7 +61,7 @@ export default function Navbar() {
                 onClick={handleLogout}
                 className="navbar__link-button"
               >
-                Logout
+                Wyloguj
               </button>
             </li>
           </>

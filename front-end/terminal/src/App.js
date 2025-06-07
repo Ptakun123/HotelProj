@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
 import LoginPage from './pages/LoginPage';
@@ -34,6 +34,7 @@ export default function App() {
           />
 
           {/* dostępne dla wszystkich */}
+          <Route path="/" element={<Navigate to="/search" replace />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/room/:id" element={<RoomDetailPage />} />
 

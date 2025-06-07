@@ -9,25 +9,35 @@ import api from '../api/api';
 import { FaStar } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
-const ROOM_OPTIONS = [
-  { label: 'Klimatyzacja', value: 'Air Conditioning' },
-  { label: 'TV', value: 'TV' },
-  { label: 'Mini Bar', value: 'Mini Bar' },
-  { label: 'Balkon', value: 'Balcony' },
-  { label: 'Wanna', value: 'Bathtub' },
-  { label: 'Ekspres do kawy', value: 'Coffee Machine' }
-];
+const ROOM_FACILITY_LABELS = {
+  'Air Conditioning': 'Klimatyzacja',
+  TV: 'TV',
+  'Mini Bar': 'Mini Bar',
+  Balcony: 'Balkon',
+  Bathtub: 'Wanna',
+  'Coffee Machine': 'Ekspres do kawy'
+};
 
-const HOTEL_OPTIONS = [
-  { label: 'WiFi', value: 'WiFi' },
-  { label: 'Parking', value: 'Parking' },
-  { label: 'Basen', value: 'Swimming Pool' },
-  { label: 'Siłownia', value: 'Gym' },
-  { label: 'Restauracja', value: 'Restaurant' },
-  { label: 'Spa', value: 'Spa' },
-  { label: 'Sala konferencyjna', value: 'Conference Room' },
-  { label: 'Zwierzęta', value: 'Pet-Friendly' }
-];
+const HOTEL_FACILITY_LABELS = {
+  WiFi: 'WiFi',
+  Parking: 'Parking',
+  'Swimming Pool': 'Basen',
+  Gym: 'Siłownia',
+  Restaurant: 'Restauracja',
+  Spa: 'Spa',
+  'Conference Room': 'Sala konferencyjna',
+  'Pet-Friendly': 'Pet-Friendly',
+};
+
+const ROOM_OPTIONS = Object.entries(ROOM_FACILITY_LABELS).map(([value, label]) => ({
+  label,
+  value
+}));
+
+const HOTEL_OPTIONS = Object.entries(HOTEL_FACILITY_LABELS).map(([value, label]) => ({
+  label,
+  value
+}));
 
 export default function SearchPage() {
   const [startDate, setStartDate]           = useState(null);
@@ -37,7 +47,9 @@ export default function SearchPage() {
   const [highestPrice, setHighestPrice]     = useState('');
   const [selectedRoomFac,  setSelectedRoomFac]   = useState([]);
   const [selectedHotelFac, setSelectedHotelFac]  = useState([]);
-  const [countries, setCountries]           = useState('');
+  const [country, setCountry]              = useState('');
+  const [countryOptions, setCountryOptions] = useState([]);
+  const [cityOptions, setCityOptions]       = useState([]);
   const [cities,    setCities]              = useState('');
   const [minStars,  setMinStars]            = useState(0);
   const [rooms,     setRooms]               = useState([]);
@@ -87,7 +99,8 @@ export default function SearchPage() {
       if (highestPrice)        payload.highest_price     = +highestPrice;
       if (selectedRoomFac.length)  payload.room_facilities  = selectedRoomFac;
       if (selectedHotelFac.length) payload.hotel_facilities = selectedHotelFac;
-      if (countries)           payload.countries         = countries.split(',').map(c => c.trim());
+      if (selectedHotelFac.length) payload.hotel_facilities = selectedHotelFac;
+      if (country)            payload.countries         = [country];
       if (cities)              payload.city              = cities.split(',').map(c => c.trim());
       if (minStars > 0)        payload.min_hotel_stars   = minStars;
 
@@ -135,15 +148,41 @@ export default function SearchPage() {
       try {
         const { data: roomFacilities } = await api.get('/room_facilities');
         const { data: hotelFacilities } = await api.get('/hotel_facilities');
-        setRoomOptions(roomFacilities.room_facilities.map(f => ({ label: f, value: f })));
-        setHotelOptions(hotelFacilities.hotel_facilities.map(f => ({ label: f, value: f })));
+        const { data: countriesResp } = await api.get('/countries');
+        const { data: citiesResp } = await api.get('/cities');
+
+        setRoomOptions(
+          roomFacilities.room_facilities.map(f => ({
+            label: ROOM_FACILITY_LABELS[f] || f,
+            value: f
+          }))
+        );
+        setHotelOptions(
+          hotelFacilities.hotel_facilities.map(f => ({
+            label: HOTEL_FACILITY_LABELS[f] || f,
+            value: f
+          }))
+        );
+        setCountryOptions(countriesResp.countries);
+        setCityOptions(citiesResp.cities);
       } catch (e) {
         console.warn('Nie udało się pobrać listy udogodnień', e.message);
       }
     }
     fetchFacilities();
   }, []);
-
+    useEffect(() => {
+    async function fetchCities() {
+      try {
+        const url = country ? `/cities?country=${encodeURIComponent(country)}` : '/cities';
+        const { data } = await api.get(url);
+        setCityOptions(data.cities);
+      } catch (e) {
+        console.warn('Nie udało się pobrać listy miast', e.message);
+      }
+    }
+    fetchCities();
+  }, [country]);
   /* ---------- render ---------- */
   return (
     <PageLayout>
@@ -285,29 +324,45 @@ export default function SearchPage() {
               </fieldset>
 
               {/* LOKALIZACJA */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <span className="block text-sm font-medium mb-1 text-gray-700">Państwa (oddzielone przecinkami)</span>
-                  <input
-                    type="text"
-                    value={countries}
-                    onChange={e => setCountries(e.target.value)}
-                    placeholder="Polska, Niemcy"
-                    className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
-                  />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <span className="block text-sm font-medium mb-1 text-gray-700">Państwo</span>
+                    <input
+                      type="text"
+                      list="country-list"
+                      value={country}
+                      onChange={e => setCountry(e.target.value)}
+                      placeholder="Polska"
+                      className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
+                    />
+                    <datalist id="country-list">
+                      {countryOptions.map(c => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
+                  </div>
                 <div>
                   <span className="block text-sm font-medium mb-1 text-gray-700">Miasta (oddzielone przecinkami)</span>
                   <input
                     type="text"
+                    list="city-list"
                     value={cities}
                     onChange={e => setCities(e.target.value)}
                     placeholder="Warszawa, Berlin"
                     className="border border-gray-300 rounded-xl p-3 w-full focus:ring-2 focus:ring-primary"
                   />
+                  <datalist id="city-list">
+                    {cityOptions.map(c => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
-
+                  <datalist id="city-list">
+                    {cityOptions.map(c => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
               {/* GWIAZDKI */}
               <div>
                 <span className="block text-sm font-medium mb-1 text-gray-700">Minimalne gwiazdki hotelu</span>

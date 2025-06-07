@@ -130,6 +130,8 @@ def search_free_rooms():
 
         room_facilities = data.get("room_facilities", [])
         hotel_facilities = data.get("hotel_facilities", [])
+        room_facilities = [f.lower() for f in room_facilities]
+        hotel_facilities = [f.lower() for f in hotel_facilities]
         countries = data.get("countries", [])
         cities = data.get("city", [])
 
@@ -150,6 +152,8 @@ def search_free_rooms():
                 jsonify({"error": "Udogodnienia hotelu muszą być listą stringów"}),
                 400,
             )
+        room_facilities = [f.lower() for f in room_facilities]
+        hotel_facilities = [f.lower() for f in hotel_facilities]
         if countries and not (
             isinstance(countries, list) and all(isinstance(c, str) for c in countries)
         ):
@@ -294,8 +298,9 @@ def search_free_rooms():
             rf_placeholders = ", ".join(
                 [f":rf_{i}" for i in range(len(room_facilities))]
             )
-            where_clauses.append(f"rf.facility_name IN ({rf_placeholders})")
-            params["room_facilities"] = tuple(room_facilities)
+            where_clauses.append(
+                f"LOWER(TRIM(rf.facility_name)) IN ({rf_placeholders})"
+            )
             for i, facility in enumerate(room_facilities):
                 params[f"rf_{i}"] = facility
             # Zapewnienie obecności wszystkich wymaganych udogodnień
@@ -316,7 +321,9 @@ def search_free_rooms():
             hf_placeholders = ", ".join(
                 [f":hf_{i}" for i in range(len(hotel_facilities))]
             )
-            where_clauses.append(f"hf.facility_name IN ({hf_placeholders})")
+            where_clauses.append(
+                f"LOWER(TRIM(hf.facility_name)) IN ({hf_placeholders})"
+            )
             for i, facility in enumerate(hotel_facilities):
                 params[f"hf_{i}"] = facility
             # Zapewnienie obecności wszystkich wymaganych udogodnień hotelowych
