@@ -19,22 +19,18 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (formData) => {
-    const { data } = await api.post('/register', formData, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    setUser(data.user);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    if (data.access_token) {
-      localStorage.setItem('token', data.access_token);
-    }
-    return data;
-  };
+  await api.post('/register', formData, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+  return { success: true };
+};
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   return (
