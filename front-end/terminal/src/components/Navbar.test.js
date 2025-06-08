@@ -3,15 +3,15 @@ import { MemoryRouter } from 'react-router-dom';
 import Navbar from './Navbar';
 import { useAuth } from '../contexts/AuthContext';
 
-// Mockowanie hooka useAuth i useNavigate
+
 jest.mock('../contexts/AuthContext');
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'), // zachowaj oryginalne implementacje
+  ...jest.requireActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }));
 
-// Mockowanie window.alert
+
 global.alert = jest.fn();
 
 const renderNavbar = () => {
@@ -24,7 +24,7 @@ const renderNavbar = () => {
 
 describe('Navbar Component', () => {
   afterEach(() => {
-    jest.clearAllMocks(); // Wyczyść mocki po każdym teście
+    jest.clearAllMocks();
   });
 
   describe('Gdy użytkownik nie jest zalogowany', () => {

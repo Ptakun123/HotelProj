@@ -4,7 +4,7 @@ import ProfilePage from './ProfilePage';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/api';
 
-// Mockowanie zależności
+
 jest.mock('../contexts/AuthContext');
 jest.mock('../api/api');
 
@@ -14,7 +14,7 @@ jest.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-// Mockowanie window.confirm
+
 global.confirm = jest.fn();
 
 describe('ProfilePage', () => {
@@ -72,7 +72,7 @@ describe('ProfilePage', () => {
   });
 
   test('powinien usunąć konto po potwierdzeniu', async () => {
-    global.confirm.mockReturnValue(true); // Użytkownik klika "OK"
+    global.confirm.mockReturnValue(true); 
     api.delete.mockResolvedValue({});
     renderComponent();
     await screen.findByText('Witaj, Jan!');
@@ -96,7 +96,7 @@ describe('ProfilePage', () => {
 
   test('powinien wyświetlić błąd, gdy hasła przy zmianie się nie zgadzają', async () => {
     renderComponent();
-    await screen.findByText('Witaj, Jan!'); // Czekamy na załadowanie
+    await screen.findByText('Witaj, Jan!');
     
     fireEvent.click(screen.getByRole('button', { name: /zmień hasło/i }));
     
@@ -110,14 +110,14 @@ describe('ProfilePage', () => {
   });
 
   test('powinien przekierować na stronę logowania, jeśli użytkownik nie jest zalogowany', () => {
-    useAuth.mockReturnValue({ user: null }); // Symulujemy brak użytkownika
+    useAuth.mockReturnValue({ user: null }); 
     renderComponent();
     expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 
   test('powinien obsłużyć błąd podczas usuwania konta', async () => {
     global.confirm.mockReturnValue(true);
-    api.delete.mockRejectedValue(new Error('Server error')); // Symulujemy błąd API
+    api.delete.mockRejectedValue(new Error('Server error')); 
     renderComponent();
     
     await screen.findByText('Witaj, Jan!');
@@ -127,7 +127,7 @@ describe('ProfilePage', () => {
   });
 
   test('powinien obsłużyć błąd podczas zmiany hasła', async () => {
-    api.put.mockRejectedValue(new Error('Server error')); // Symulujemy błąd API
+    api.put.mockRejectedValue(new Error('Server error')); 
     renderComponent();
     await screen.findByText('Witaj, Jan!');
     

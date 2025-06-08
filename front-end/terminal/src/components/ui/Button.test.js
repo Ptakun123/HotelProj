@@ -8,7 +8,7 @@ describe('Button Component', () => {
   });
 
   test('powinien wywołać funkcję onClick po kliknięciu', () => {
-    const handleClick = jest.fn(); // Tworzymy mockową funkcję
+    const handleClick = jest.fn();
     render(<Button onClick={handleClick}>Kliknij mnie</Button>);
 
     const buttonElement = screen.getByText('Kliknij mnie');

@@ -13,7 +13,6 @@ describe('PageLayout Component', () => {
 
   test('powinien renderować stopkę z rokiem 2025', () => {
     render(<PageLayout>Test</PageLayout>);
-    // Używamy `textContent` aby zignorować dodatkowe białe znaki
     expect(screen.getByRole('contentinfo')).toHaveTextContent('© 2025 Hotel UAIM Rezerwacje');
   });
 });

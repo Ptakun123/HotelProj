@@ -27,11 +27,8 @@ describe('RoomCard Component', () => {
     expect(screen.getByRole('link', { name: /zobacz szczegóły/i })).toHaveAttribute('href', '/room/101');
   });
 
-  // ==========================================================
-  // ===                 POPRAWIONY TEST                    ===
-  // ==========================================================
   test('powinien renderować komunikat o błędzie, gdy brakuje id_room', () => {
-    // Arrange: tworzymy pokój bez id_room
+
     const roomWithoutId = { ...mockRoom, id_room: null };
     render(
       <TestWrapper>
@@ -39,11 +36,10 @@ describe('RoomCard Component', () => {
       </TestWrapper>
     );
 
-    // Assert: sprawdzamy, czy jest komunikat o błędzie
+
     expect(screen.getByText('Brak danych pokoju.')).toBeInTheDocument();
     
-    // Sprawdzamy też, czy link na pewno NIE został wyrenderowany.
-    // `queryBy` jest do tego idealne, bo zwraca `null` zamiast rzucać błędem.
+
     expect(screen.queryByText(/zobacz szczegóły/i)).not.toBeInTheDocument();
   });
 

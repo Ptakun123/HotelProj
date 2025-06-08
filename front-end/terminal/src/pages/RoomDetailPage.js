@@ -114,11 +114,6 @@ export default function RoomDetailPage() {
           bill_type: billType === 'company' ? 'I' : 'R',
           nip: billType === 'company' ? nip : undefined
         },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('access_token')}`
-          }
-        }
       );
 
       setShowModal(false);

@@ -3,7 +3,6 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import ProtectedRoute from './ProtectedRoute';
 
-// Komponenty-zaślepki do symulacji stron
 const HomePage = () => <div>Strona Główna</div>;
 const LoginPage = () => <div>Strona Logowania</div>;
 const ProfilePage = () => <div>Strona Profilu</div>;

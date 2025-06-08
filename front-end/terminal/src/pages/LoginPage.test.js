@@ -3,19 +3,18 @@ import { MemoryRouter } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import { useAuth } from '../contexts/AuthContext';
 
-// Mockowanie hooka useAuth
+
 jest.mock('../contexts/AuthContext');
 
-// Mockowanie hooka useNavigate
+
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'), // zachowaj oryginalne implementacje
+  ...jest.requireActual('react-router-dom'), 
   useNavigate: () => mockNavigate,
 }));
 
 describe('LoginPage', () => {
   beforeEach(() => {
-    // Resetowanie mocków przed każdym testem
     jest.clearAllMocks();
   });
 

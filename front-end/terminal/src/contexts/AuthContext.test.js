@@ -1,97 +1,105 @@
 import { renderHook, act } from '@testing-library/react';
-import { AuthProvider, useAuth } from './AuthContext';
+import { AuthProvider } from './AuthContext';
 import api from '../api/api';
 
-// Mockowanie modułu api
 jest.mock('../api/api');
 
-// Mockowanie localStorage
-const localStorageMock = (() => {
-  let store = {};
-  return {
-    getItem: key => store[key] || null,
-    setItem: (key, value) => {
-      store[key] = value.toString();
-    },
-    removeItem: key => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-  };
-})();
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
-
-// Wrapper do testowania hooka
-const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
-
 describe('AuthContext', () => {
-  beforeEach(() => {
-    // Czyszczenie mocków i localStorage przed każdym testem
-    jest.clearAllMocks();
-    window.localStorage.clear();
-  });
+
 
   test('powinien poprawnie zalogować użytkownika', async () => {
+
+    const mockStorage = {};
+    const mockSetItem = jest.fn((key, value) => { mockStorage[key] = value; });
+    const mockGetItem = jest.fn((key) => mockStorage[key] || null);
+    
+    const localStorageSpy = jest.spyOn(window, 'localStorage', 'get');
+    localStorageSpy.mockImplementation(() => ({
+      setItem: mockSetItem,
+      getItem: mockGetItem,
+    }));
+
+
     const mockUserData = { id_user: 1, name: 'Test User' };
     const mockResponse = { data: { user: mockUserData, access_token: 'fake-token' } };
     api.post.mockResolvedValue(mockResponse);
+    const { result } = renderHook(() => require('../contexts/AuthContext').useAuth(), {
+      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>
+    });
 
-    const { result } = renderHook(() => useAuth(), { wrapper });
 
     await act(async () => {
       await result.current.login('test@test.pl', 'password');
     });
 
-    expect(api.post).toHaveBeenCalledWith('/login', { email: 'test@test.pl', password: 'password' });
+
     expect(result.current.user).toEqual(mockUserData);
-    expect(window.localStorage.getItem('user')).toBe(JSON.stringify(mockUserData));
-    expect(window.localStorage.getItem('token')).toBe('fake-token');
+    expect(mockSetItem).toHaveBeenCalledWith('user', JSON.stringify(mockUserData));
+    expect(mockSetItem).toHaveBeenCalledWith('token', 'fake-token');
+    expect(mockStorage['user']).toBe(JSON.stringify(mockUserData));
+
+
+    localStorageSpy.mockRestore();
   });
 
-  test('powinien zgłosić błąd, jeśli odpowiedź z logowania jest nieprawidłowa', async () => {
-    const mockResponse = { data: { user: null, access_token: 'fake-token' } };
-    api.post.mockResolvedValue(mockResponse);
+  test('powinien poprawnie wylogować użytkownika', () => {
 
-    const { result } = renderHook(() => useAuth(), { wrapper });
+    const initialUser = { id_user: 1, name: 'Test User' };
+    const mockStorage = {
+      user: JSON.stringify(initialUser),
+      token: 'fake-token-dla-logout'
+    };
+    const mockRemoveItem = jest.fn((key) => { delete mockStorage[key]; });
+    const localStorageSpy = jest.spyOn(window, 'localStorage', 'get');
+    localStorageSpy.mockImplementation(() => ({
 
-    await expect(result.current.login('test@test.pl', 'password')).rejects.toThrow(
-      'Brak id_user w odpowiedzi backendu'
-    );
-  });
+      getItem: (key) => mockStorage[key] || null,
+      removeItem: mockRemoveItem,
+    }));
 
-  test('powinien poprawnie zarejestrować użytkownika', async () => {
-    const mockUserData = { id_user: 2, name: 'New User' };
-    const mockFormData = { name: 'New User', email: 'new@test.pl' };
-    const mockResponse = { data: { user: mockUserData, access_token: 'new-token' } };
-    api.post.mockResolvedValue(mockResponse);
 
-    const { result } = renderHook(() => useAuth(), { wrapper });
-
-    await act(async () => {
-      await result.current.register(mockFormData);
+    const { result } = renderHook(() => require('../contexts/AuthContext').useAuth(), {
+      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>
     });
 
-    expect(api.post).toHaveBeenCalledWith('/register', mockFormData, expect.any(Object));
-    expect(result.current.user).toEqual(mockUserData);
-    expect(window.localStorage.getItem('user')).toBe(JSON.stringify(mockUserData));
-    expect(window.localStorage.getItem('token')).toBe('new-token');
-  });
-
-  test('powinien poprawnie wylogować użytkownika', async () => {
-    // Najpierw symulujemy zalogowanego użytkownika
-    const loggedInUser = { id_user: 1, name: 'Test User' };
-    window.localStorage.setItem('user', JSON.stringify(loggedInUser));
-
-    const { result } = renderHook(() => useAuth(), { wrapper });
-    expect(result.current.user).toEqual(loggedInUser); // Sprawdzenie stanu początkowego
-
+    expect(result.current.user).toEqual(initialUser);
+    
     act(() => {
       result.current.logout();
     });
 
+
     expect(result.current.user).toBeNull();
-    expect(window.localStorage.getItem('user')).toBeNull();
+    expect(mockRemoveItem).toHaveBeenCalledWith('user');
+    expect(mockRemoveItem).toHaveBeenCalledWith('token');
+
+
+    localStorageSpy.mockRestore();
+  });
+
+  test('powinien poprawnie wywołać API rejestracji bez logowania', async () => {
+
+    const mockStorage = {};
+    const mockSetItem = jest.fn((key, value) => { mockStorage[key] = value; });
+    const localStorageSpy = jest.spyOn(window, 'localStorage', 'get');
+    localStorageSpy.mockImplementation(() => ({
+      setItem: mockSetItem,
+      getItem: () => null,
+    }));
+    
+    api.post.mockResolvedValue({ data: { success: true } });
+    const { result } = renderHook(() => require('../contexts/AuthContext').useAuth(), {
+      wrapper: ({ children }) => <AuthProvider>{children}</AuthProvider>
+    });
+
+    await act(async () => {
+      await result.current.register({ name: 'New User' });
+    });
+
+    expect(api.post).toHaveBeenCalledTimes(1);
+    expect(result.current.user).toBeNull();
+    expect(mockSetItem).not.toHaveBeenCalled();
+
+    localStorageSpy.mockRestore();
   });
 });

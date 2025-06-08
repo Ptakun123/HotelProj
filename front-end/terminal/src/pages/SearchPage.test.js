@@ -3,7 +3,6 @@ import { MemoryRouter } from 'react-router-dom';
 import SearchPage from './SearchPage';
 import api from '../api/api';
 
-// --- MOCKOWANIE ZALEŻNOŚCI ---
 jest.mock('../api/api');
 jest.mock('react-datepicker', () => {
   return function DummyDatePicker({ selected, onChange, placeholderText }) {
@@ -26,18 +25,15 @@ const localStorageMock = (() => {
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
-// --- KONIEC MOCKOWANIA ---
-
 describe('SearchPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // POPRAWKA: Bardziej niezawodny mock dla api.get, który zawsze zwraca poprawną strukturę danych
     api.get.mockImplementation(url => {
       if (url.includes('room_facilities')) return Promise.resolve({ data: { room_facilities: ['Klimatyzacja'] } });
       if (url.includes('hotel_facilities')) return Promise.resolve({ data: { hotel_facilities: ['Parking'] } });
       if (url.includes('countries')) return Promise.resolve({ data: { countries: ['Polska'] } });
       if (url.includes('cities')) return Promise.resolve({ data: { cities: ['Gdańsk'] } });
-      return Promise.resolve({ data: [] }); // Domyślna odpowiedź dla innych zapytań GET
+      return Promise.resolve({ data: [] });
     });
   });
 
@@ -45,7 +41,6 @@ describe('SearchPage', () => {
 
   test('powinien renderować podstawowe pola wyszukiwania po załadowaniu danych', async () => {
     renderComponent();
-    // POPRAWKA: Czekamy na element, który pojawia się po załadowaniu danych z useEffect
     expect(await screen.findByText('Gdzie jedziesz?')).toBeInTheDocument();
     expect(screen.getAllByTestId('date-picker').length).toBe(2);
     expect(screen.getByRole('button', { name: /szukaj/i })).toBeInTheDocument();
@@ -56,18 +51,14 @@ describe('SearchPage', () => {
     api.post.mockResolvedValue({ data: mockSearchResults });
     
     renderComponent();
-    // POPRAWKA: Czekamy, aż komponent będzie gotowy
     await screen.findByRole('button', { name: /szukaj/i });
 
-    // Wypełniamy formularz
     const datePickers = screen.getAllByTestId('date-picker');
     fireEvent.change(datePickers[0], { target: { value: '2025-12-24' } });
     fireEvent.change(datePickers[1], { target: { value: '2025-12-26' } });
-    
-    // Klikamy szukaj
+
     fireEvent.click(screen.getByRole('button', { name: /szukaj/i }));
 
-    // Czekamy, aż wyświetlą się wyniki
     expect(await screen.findByText('Super Hotel')).toBeInTheDocument();
     expect(localStorage.setItem).toHaveBeenCalledWith('search_startDate', expect.any(String));
   });
