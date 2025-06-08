@@ -24,6 +24,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "coverage": "react-scripts test --coverage",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -48,8 +49,22 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.7",
     "autoprefixer": "^10.4.21",
+    "identity-obj-proxy": "^3.0.0",
     "postcss": "^8.5.3",
     "postcss-loader": "^8.1.1",
     "tailwindcss": "^4.1.7"
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(axios)/)"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}",
+      "!src/index.js",
+      "!src/reportWebVitals.js"
+    ],
+    "moduleNameMapper": {
+      "\\.(css|scss)$": "identity-obj-proxy"
+    }
   }
 }

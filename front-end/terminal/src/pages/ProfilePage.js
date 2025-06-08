@@ -27,6 +27,7 @@ export default function ProfilePage() {
         setForm(res.data);
       } catch (e) {
         setError('Nie udało się pobrać danych użytkownika.');
+        setForm({}); 
       }
     }
     fetchUser();
