@@ -84,7 +84,7 @@ export default function ProfilePage() {
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
         <h2 className="text-2xl font-bold text-center mb-4 text-primary">
-          Witaj, {form.first_name}!
+          Witaj, {form?.first_name}!
         </h2>
 
         {error && <p className="text-red-600 text-center mb-2">{error}</p>}
@@ -93,11 +93,11 @@ export default function ProfilePage() {
         {!passwordEdit ? (
           <>
             <div className="space-y-2 mb-6">
-              <div><span className="font-semibold">Imię:</span> {form.first_name}</div>
-              <div><span className="font-semibold">Nazwisko:</span> {form.last_name}</div>
-              <div><span className="font-semibold">Email:</span> {form.email}</div>
-              <div><span className="font-semibold">Telefon:</span> {form.phone_number}</div>
-              <div><span className="font-semibold">Data urodzenia:</span> {form.birth_date}</div>
+              <div><span className="font-semibold">Imię:</span> {form?.first_name}</div>
+              <div><span className="font-semibold">Nazwisko:</span> {form?.last_name}</div>
+              <div><span className="font-semibold">Email:</span> {form?.email}</div>
+              <div><span className="font-semibold">Telefon:</span> {form?.phone_number}</div>
+              <div><span className="font-semibold">Data urodzenia:</span> {form?.birth_date}</div>
             </div>
             <div className="flex gap-4">
               <button
