@@ -265,7 +265,7 @@ export default function RoomDetailPage() {
                 style={{ border: 0 }}
                 loading="lazy"
                 allowFullScreen
-                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyDyo_84FCDAs5znOrrHXcZOXOkcbxietdU&q=${lat},${lng}&zoom=15`}
+                src={`https://www.google.com/maps/embed/v1/place?key=[api_key]=${lat},${lng}&zoom=15`}
               />
             </div>
           ) : (
